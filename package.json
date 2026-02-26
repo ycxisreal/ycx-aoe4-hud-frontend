@@ -1,0 +1,25 @@
+{
+  "name": "aoe4-hud",
+  "version": "0.1.0",
+  "description": "AoE4 overlay HUD (Electron + Vue3)",
+  "main": "dist/main/index.js",
+  "scripts": {
+    "predev": "node scripts/ensure-electron-entry.cjs",
+    "dev": "electron-vite dev",
+    "build": "electron-vite build",
+    "preview": "electron-vite preview"
+  },
+  "dependencies": {
+    "electron-store": "^8.2.0",
+    "vue": "^3.4.0",
+    "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.10",
+    "@vitejs/plugin-vue": "^5.1.0",
+    "electron": "^35.0.0",
+    "electron-vite": "^2.3.0",
+    "typescript": "^5.5.3"
+  },
+  "private": true
+}

@@ -1,0 +1,159 @@
+<script setup lang="ts">
+import { reactive, watch } from "vue";
+import { AppConfig } from "../../shared/types";
+
+const props = defineProps<{
+  open: boolean;
+  config: AppConfig | null;
+}>();
+
+const emit = defineEmits<{
+  (e: "close"): void;
+  (e: "save", config: AppConfig): void;
+}>();
+
+/**
+ * 结构说明：
+ * 1) 使用本地表单态复制全量配置，避免输入时直接污染全局状态。
+ * 2) 当外部配置变化或面板打开时重置表单。
+ * 3) 点击保存时将完整配置回传给上层统一落库。
+ */
+const form = reactive<AppConfig>({
+  version: 1,
+  app: { firstRun: true },
+  overlay: { opacity: 0.9, scale: 1, layoutPreset: "default", locked: true },
+  hotkeys: {},
+  players: { self: { profileId: "" }, opponent: { profileId: "" } },
+  backend: { wsUrl: "ws://127.0.0.1:8765", autoReconnect: true },
+  recognition: { enabled: false, hz: 2 },
+  templates: { setName: "default_100" },
+  calibration: { rois: [] },
+});
+
+// 同步外部配置到表单
+const syncForm = () => {
+  if (!props.config) {
+    return;
+  }
+  const next = JSON.parse(JSON.stringify(props.config)) as AppConfig;
+  if (!next.players.opponent) {
+    next.players.opponent = { profileId: "" };
+  }
+  Object.assign(form, next);
+};
+
+watch(
+  () => [props.config, props.open],
+  () => syncForm(),
+  { immediate: true }
+);
+
+// 保存配置
+const handleSave = () => {
+  emit("save", JSON.parse(JSON.stringify(form)) as AppConfig);
+};
+</script>
+
+<template>
+  <div v-if="open" class="settings-mask">
+    <div class="settings-panel">
+      <div class="settings-title">设置面板</div>
+      <div class="settings-grid">
+        <label>
+          我方 profileId
+          <input v-model="form.players.self.profileId" placeholder="必填" />
+        </label>
+        <label>
+          对手 profileId
+          <input v-model="form.players.opponent.profileId" placeholder="可选" />
+        </label>
+        <label>
+          后端 WS
+          <input v-model="form.backend.wsUrl" placeholder="ws://127.0.0.1:8765" />
+        </label>
+        <label>
+          识别频率 (Hz)
+          <input v-model.number="form.recognition.hz" type="number" min="1" max="5" />
+        </label>
+        <label>
+          模板集名称
+          <input v-model="form.templates.setName" placeholder="default_100" />
+        </label>
+        <label>
+          透明度
+          <input v-model.number="form.overlay.opacity" type="number" min="0.2" max="1" step="0.05" />
+        </label>
+      </div>
+      <div class="settings-actions">
+        <button type="button" @click="emit('close')">取消</button>
+        <button type="button" class="primary" @click="handleSave">保存</button>
+      </div>
+    </div>
+  </div>
+</template>
+
+<style scoped>
+.settings-mask {
+  position: fixed;
+  inset: 0;
+  background: rgba(3, 6, 12, 0.6);
+  display: grid;
+  place-items: center;
+  z-index: 30;
+}
+
+.settings-panel {
+  width: min(640px, 92vw);
+  background: rgba(12, 16, 30, 0.94);
+  border: 1px solid rgba(120, 170, 255, 0.25);
+  border-radius: 18px;
+  padding: 18px 20px 16px;
+  color: #e8f0ff;
+}
+
+.settings-title {
+  font-size: 18px;
+  margin-bottom: 14px;
+}
+
+.settings-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+label {
+  display: grid;
+  gap: 6px;
+  font-size: 12px;
+}
+
+input {
+  background: rgba(10, 14, 24, 0.85);
+  border: 1px solid rgba(120, 170, 255, 0.3);
+  border-radius: 10px;
+  padding: 6px 8px;
+  color: #e8f0ff;
+}
+
+.settings-actions {
+  margin-top: 14px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+button {
+  border: 1px solid rgba(160, 200, 255, 0.35);
+  background: rgba(20, 24, 36, 0.8);
+  color: #e8f0ff;
+  padding: 6px 12px;
+  border-radius: 10px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+button.primary {
+  background: linear-gradient(135deg, rgba(76, 145, 255, 0.9), rgba(58, 86, 180, 0.9));
+}
+</style>
