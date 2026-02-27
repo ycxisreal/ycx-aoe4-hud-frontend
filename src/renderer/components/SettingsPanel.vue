@@ -23,7 +23,7 @@ const form = reactive<AppConfig>({
   app: { firstRun: true },
   overlay: { opacity: 0.9, scale: 1, layoutPreset: "default", locked: true },
   hotkeys: {},
-  players: { self: { profileId: "" }, opponent: { profileId: "" } },
+  players: { self: { profileId: "" } },
   backend: { wsUrl: "ws://127.0.0.1:8765", autoReconnect: true },
   recognition: { enabled: false, hz: 2 },
   templates: { setName: "default_100" },
@@ -36,9 +36,6 @@ const syncForm = () => {
     return;
   }
   const next = JSON.parse(JSON.stringify(props.config)) as AppConfig;
-  if (!next.players.opponent) {
-    next.players.opponent = { profileId: "" };
-  }
   Object.assign(form, next);
 };
 
@@ -64,20 +61,12 @@ const handleSave = () => {
           <input v-model="form.players.self.profileId" placeholder="必填" />
         </label>
         <label>
-          对手 profileId
-          <input v-model="form.players.opponent.profileId" placeholder="可选" />
-        </label>
-        <label>
           后端 WS
           <input v-model="form.backend.wsUrl" placeholder="ws://127.0.0.1:8765" />
         </label>
         <label>
           识别频率 (Hz)
           <input v-model.number="form.recognition.hz" type="number" min="1" max="5" />
-        </label>
-        <label>
-          模板集名称
-          <input v-model="form.templates.setName" placeholder="default_100" />
         </label>
         <label>
           透明度
@@ -103,17 +92,21 @@ const handleSave = () => {
 }
 
 .settings-panel {
-  width: min(640px, 92vw);
+  width: 90vw;
+  height: 80vh;
+  overflow-y: scroll;
   background: rgba(12, 16, 30, 0.94);
   border: 1px solid rgba(120, 170, 255, 0.25);
   border-radius: 18px;
   padding: 18px 20px 16px;
   color: #e8f0ff;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(120, 170, 255, 0.35) rgba(6, 10, 18, 0.2);
 }
 
 .settings-title {
   font-size: 18px;
-  margin-bottom: 14px;
+  margin-bottom: 2px;
 }
 
 .settings-grid {
@@ -155,5 +148,24 @@ button {
 
 button.primary {
   background: linear-gradient(135deg, rgba(76, 145, 255, 0.9), rgba(58, 86, 180, 0.9));
+}
+
+.settings-panel::-webkit-scrollbar {
+  width: 8px;
+}
+
+.settings-panel::-webkit-scrollbar-track {
+  background: rgba(6, 10, 18, 0.2);
+  border-radius: 10px;
+}
+
+.settings-panel::-webkit-scrollbar-thumb {
+  background: rgba(120, 170, 255, 0.35);
+  border-radius: 10px;
+  border: 2px solid rgba(6, 10, 18, 0.2);
+}
+
+.settings-panel::-webkit-scrollbar-thumb:hover {
+  background: rgba(120, 170, 255, 0.5);
 }
 </style>

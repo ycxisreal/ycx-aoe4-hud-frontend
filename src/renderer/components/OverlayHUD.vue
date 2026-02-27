@@ -85,11 +85,22 @@ const statusText = computed(() => props.backendStatus.message ?? props.backendSt
       <span>锁定：{{ locked ? "已锁定" : "编辑中" }}</span>
       <span v-if="lastAlert" class="hud-alert">{{ lastAlert.text }}</span>
       <div class="hud-actions">
-        <button type="button" @click="onRefresh">刷新</button>
-        <button type="button" @click="onCalibrate">标定</button>
-        <button type="button" @click="onSettings">设置</button>
-        <button v-if="!running" type="button" @click="onStart">START</button>
-        <button v-else type="button" class="danger" @click="onStop">STOP</button>
+        <button type="button" aria-label="刷新对局" @click="onRefresh">
+          <span class="icon refresh" aria-hidden="true">⟳</span>
+        </button>
+        <button type="button" aria-label="标定区域" @click="onCalibrate">
+          <span class="icon target" aria-hidden="true">⌖</span>
+          标定
+        </button>
+        <button type="button" aria-label="设置" @click="onSettings">
+          <span class="icon gear" aria-hidden="true">⚙</span>
+        </button>
+        <button v-if="!running" type="button" aria-label="开始识别" @click="onStart">
+          <span class="icon play" aria-hidden="true">▶</span>
+        </button>
+        <button v-else type="button" class="danger" aria-label="停止识别" @click="onStop">
+          <span class="icon stop" aria-hidden="true">■</span>
+        </button>
       </div>
     </div>
   </div>
@@ -110,7 +121,7 @@ const statusText = computed(() => props.backendStatus.message ?? props.backendSt
 }
 
 .hud-card {
-  background: linear-gradient(135deg, rgba(20, 28, 48, 0.72), rgba(10, 10, 20, 0.4));
+  background: radial-gradient(circle at 50% 50%, rgba(46, 74, 120, 0.2), rgba(10, 12, 20, 0.08) 70%);
   border: 1px solid rgba(120, 170, 255, 0.25);
   border-radius: 14px;
   padding: 14px 16px;
@@ -139,8 +150,8 @@ const statusText = computed(() => props.backendStatus.message ?? props.backendSt
   flex-wrap: wrap;
   gap: 12px;
   align-items: center;
-  background: rgba(8, 10, 16, 0.5);
-  border: 1px solid rgba(120, 170, 255, 0.2);
+  background: radial-gradient(circle at 50% 50%, rgba(50, 80, 130, 0.18), rgba(8, 10, 16, 0.06) 70%);
+  border: 1px solid rgba(120, 170, 255, 0.18);
   border-radius: 10px;
   padding: 8px 12px;
   font-size: 12px;
@@ -154,17 +165,28 @@ const statusText = computed(() => props.backendStatus.message ?? props.backendSt
 }
 
 .hud-actions button {
-  border: 1px solid rgba(160, 200, 255, 0.35);
-  background: rgba(20, 24, 36, 0.8);
+  border: none;
+  background: transparent;
   color: #e8f0ff;
-  padding: 4px 10px;
+  padding: 2px 6px;
   border-radius: 10px;
   font-size: 12px;
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  opacity: 0.85;
 }
 
 .hud-actions button.danger {
-  background: linear-gradient(135deg, rgba(255, 99, 99, 0.9), rgba(180, 58, 90, 0.9));
+  color: #ffb3b3;
+  opacity: 0.95;
+}
+
+.icon {
+  font-size: 12px;
+  line-height: 1;
+  opacity: 0.85;
 }
 
 .hud-alert {

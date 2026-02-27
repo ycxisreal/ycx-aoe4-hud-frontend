@@ -1,5 +1,5 @@
 import { app, globalShortcut } from "electron";
-import { createOverlayWindow, setOverlayLocked } from "./windows/overlayWindow";
+import { createOverlayWindow, enterCalibration, exitCalibration, setOverlayLocked } from "./windows/overlayWindow";
 import { createBackendClient } from "./services/backendWs";
 import { initConfigStore } from "./services/configStore";
 import { registerIpcHandlers } from "./services/ipcBridge";
@@ -70,6 +70,12 @@ const bootstrap = () => {
     backend,
     store,
     onLockedChange: (locked) => applyLockState(locked),
+    onCalibrationStart: () => {
+      enterCalibration();
+    },
+    onCalibrationStop: () => {
+      exitCalibration(store.getConfig().overlay.locked);
+    },
     onConfigUpdated: (next) => syncConfigToBackend(next as AppConfig),
   });
 

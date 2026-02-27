@@ -9,11 +9,14 @@ type RegisterParams = {
   store: ConfigStore;
   onLockedChange?: (locked: boolean) => void;
   onConfigUpdated?: (config: unknown) => void;
+  onCalibrationStart?: () => void;
+  onCalibrationStop?: () => void;
 };
 
 // 注册 IPC 通道
 export function registerIpcHandlers(params: RegisterParams) {
-  const { windows, backend, store, onLockedChange, onConfigUpdated } = params;
+  const { windows, backend, store, onLockedChange, onConfigUpdated, onCalibrationStart, onCalibrationStop } =
+    params;
 
   ipcMain.handle("config:get", () => store.getConfig());
   ipcMain.handle("config:update", (_event, patch) => {
@@ -29,6 +32,14 @@ export function registerIpcHandlers(params: RegisterParams) {
   });
   ipcMain.handle("backend:stop", () => {
     backend.stop();
+  });
+
+  ipcMain.handle("calibration:start", () => {
+    onCalibrationStart?.();
+  });
+
+  ipcMain.handle("calibration:stop", () => {
+    onCalibrationStop?.();
   });
 
   ipcMain.handle("screen:get", () => {

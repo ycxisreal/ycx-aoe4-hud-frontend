@@ -74,6 +74,13 @@ const toggleLock = async () => {
 // 打开标定向导
 const openCalibration = () => {
   isCalibrating.value = true;
+  window.api.startCalibration();
+};
+
+// 关闭标定向导
+const closeCalibration = async () => {
+  isCalibrating.value = false;
+  await window.api.stopCalibration();
 };
 
 // 保存标定结果
@@ -85,6 +92,7 @@ const handleCalibrationComplete = async (rois: RoiItem[], signature: AppConfig["
     },
   });
   isCalibrating.value = false;
+  await window.api.stopCalibration();
 };
 
 // 更新设置
@@ -169,8 +177,9 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div class="app-root">
+  <div class="app-root" :class="{ calibrating: isCalibrating }">
     <OverlayHUD
+      v-if="!isCalibrating"
       :self-summary="selfSummary"
       :opponent-summary="opponentSummary"
       :backend-status="backendStatus"
@@ -190,7 +199,7 @@ onBeforeUnmount(() => {
       :steps="calibrationSteps"
       :screen-info="screenInfo"
       :existing-rois="config?.calibration.rois ?? []"
-      @close="isCalibrating = false"
+      @close="closeCalibration"
       @complete="handleCalibrationComplete"
     />
 
@@ -230,6 +239,10 @@ body {
   flex-direction: column;
   gap: 10px;
   padding: 10px;
+}
+
+.app-root.calibrating {
+  background: transparent;
 }
 
 </style>

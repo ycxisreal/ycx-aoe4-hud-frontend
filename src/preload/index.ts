@@ -25,6 +25,9 @@ const api = {
   startRecognition: () => ipcRenderer.invoke("backend:start"),
   stopRecognition: () => ipcRenderer.invoke("backend:stop"),
   reconnectBackend: () => ipcRenderer.invoke("backend:reconnect"),
+  // 标定模式
+  startCalibration: () => ipcRenderer.invoke("calibration:start"),
+  stopCalibration: () => ipcRenderer.invoke("calibration:stop"),
   // 订阅后端状态
   onBackendStatus: (handler: (payload: BackendStatusPayload) => void): Unsubscribe => {
     ipcRenderer.on("backend:status", (_event, payload) => handler(payload));

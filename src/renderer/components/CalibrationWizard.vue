@@ -229,15 +229,15 @@ const clamp = (value: number, min: number, max: number) => Math.min(max, Math.ma
 .calibration-mask {
   position: fixed;
   inset: 0;
-  background: rgba(10, 12, 18, 0.2);
+  background: transparent;
   z-index: 40;
 }
 
 .calibration-panel {
   position: absolute;
-  top: 20px;
+  top: 50%;
   left: 50%;
-  transform: translateX(-50%);
+  transform: translate(-50%, -50%);
   background: rgba(8, 12, 20, 0.88);
   border: 1px solid rgba(120, 170, 255, 0.35);
   border-radius: 16px;
