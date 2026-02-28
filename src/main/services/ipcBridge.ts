@@ -11,15 +11,28 @@ type RegisterParams = {
   onConfigUpdated?: (config: unknown) => void;
   onCalibrationStart?: () => void;
   onCalibrationStop?: () => void;
+  getBackendStatus?: () => unknown;
 };
 
 // 注册 IPC 通道
 export function registerIpcHandlers(params: RegisterParams) {
-  const { windows, backend, store, onLockedChange, onConfigUpdated, onCalibrationStart, onCalibrationStop } =
-    params;
+  const {
+    windows,
+    backend,
+    store,
+    onLockedChange,
+    onConfigUpdated,
+    onCalibrationStart,
+    onCalibrationStop,
+    getBackendStatus,
+  } = params;
 
   ipcMain.handle("config:get", () => store.getConfig());
   ipcMain.handle("config:update", (_event, patch) => {
+    console.log("[ipc] config:update", {
+      rois: patch?.calibration?.rois?.length ?? 0,
+      hasSignature: Boolean(patch?.calibration?.signature),
+    });
     const next = store.updateConfig(patch);
     return next;
   });
@@ -34,11 +47,17 @@ export function registerIpcHandlers(params: RegisterParams) {
     backend.stop();
   });
 
+  ipcMain.handle("backend:status", () => {
+    return getBackendStatus?.() ?? null;
+  });
+
   ipcMain.handle("calibration:start", () => {
+    console.log("[ipc] calibration:start");
     onCalibrationStart?.();
   });
 
   ipcMain.handle("calibration:stop", () => {
+    console.log("[ipc] calibration:stop");
     onCalibrationStop?.();
   });
 

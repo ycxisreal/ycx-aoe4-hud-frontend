@@ -33,6 +33,9 @@ const state = reactive({
   dragStart: { x: 0, y: 0 },
   dragRect: null as RoiRect | null,
   canvasRect: null as DOMRect | null,
+  completedIds: new Set<string>(),
+  lastSavedName: "",
+  errorMessage: "",
 });
 
 const overlayRef = ref<HTMLDivElement | null>(null);
@@ -44,8 +47,11 @@ const currentStep = computed(() => props.steps[state.stepIndex]);
 const resetState = () => {
   state.stepIndex = 0;
   state.rois = props.existingRois ? JSON.parse(JSON.stringify(props.existingRois)) : [];
+  state.completedIds = new Set(state.rois.map((roi) => roi.id));
   state.dragging = false;
   state.dragRect = null;
+  state.lastSavedName = "";
+  state.errorMessage = "";
 };
 
 watch(
@@ -109,6 +115,13 @@ const confirmRect = () => {
     state.rois.push(next);
   }
   state.dragRect = null;
+  state.completedIds.add(id);
+  state.lastSavedName = currentStep.value.name;
+  state.errorMessage = "";
+  console.log("[calibration] saved:", {
+    id,
+    rect: next.rect,
+  });
 };
 
 // 进入下一步
@@ -132,12 +145,24 @@ const skipStep = () => {
   nextStep();
 };
 
+const currentCompleted = computed(() => {
+  if (!currentStep.value) {
+    return false;
+  }
+  return state.completedIds.has(currentStep.value.id);
+});
+
 // 完成标定
 const finish = () => {
-  if (!props.screenInfo) {
+  if (state.rois.length === 0) {
+    state.errorMessage = "请先完成至少一个区域并点击“确认保存”。";
     return;
   }
   const signature: ScreenSignature = buildSignature();
+  console.log("[calibration] finish:", {
+    rois: state.rois.length,
+    signature,
+  });
   emit("complete", state.rois, signature);
 };
 
@@ -177,7 +202,7 @@ const buildSignature = (): ScreenSignature => {
   return {
     width: Math.round(size.width),
     height: Math.round(size.height),
-    dpiScale: props.screenInfo?.scaleFactor,
+    dpiScale: props.screenInfo?.scaleFactor ?? window.devicePixelRatio ?? 1,
     displayId: props.screenInfo?.displayId,
   };
 };
@@ -192,14 +217,22 @@ const clamp = (value: number, min: number, max: number) => Math.min(max, Math.ma
       <div class="title">标定向导</div>
       <div class="subtitle">
         当前步骤：{{ currentStep?.name || "完成" }}
+        <span v-if="currentCompleted" class="badge">已完成</span>
       </div>
-      <div class="hint">在屏幕上拖拽框选对应区域</div>
+      <div class="hint">步骤：拖拽框选 → 点击“确认保存” → 下一步/完成</div>
+      <div v-if="state.lastSavedName" class="hint success">
+        已保存：{{ state.lastSavedName }}
+      </div>
+      <div v-if="state.errorMessage" class="hint error">
+        {{ state.errorMessage }}
+      </div>
+      <div class="hint subtle">已保存区域数：{{ state.rois.length }}</div>
       <div class="actions">
         <button type="button" @click="prevStep">上一步</button>
         <button type="button" @click="skipStep">跳过</button>
-        <button type="button" @click="confirmRect">确认</button>
+        <button type="button" class="primary" @click="confirmRect">确认保存</button>
         <button type="button" @click="nextStep">下一步</button>
-        <button type="button" class="primary" @click="finish">完成</button>
+        <button type="button" class="primary solid" @click="finish">完成</button>
         <button type="button" class="ghost" @click="emit('close')">退出</button>
       </div>
     </div>
@@ -258,12 +291,32 @@ const clamp = (value: number, min: number, max: number) => Math.min(max, Math.ma
   color: rgba(200, 220, 255, 0.9);
 }
 
+.badge {
+  margin-left: 8px;
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: rgba(80, 170, 120, 0.2);
+  color: rgba(160, 230, 190, 0.95);
+}
+
 .hint {
   margin-top: 6px;
   font-size: 12px;
   color: rgba(200, 220, 255, 0.7);
 }
 
+.hint.success {
+  color: rgba(160, 220, 200, 0.95);
+}
+
+.hint.error {
+  color: rgba(255, 160, 160, 0.95);
+}
+
+.hint.subtle {
+  color: rgba(180, 200, 230, 0.65);
+}
 .actions {
   margin-top: 10px;
   display: flex;
@@ -285,6 +338,9 @@ button.primary {
   background: linear-gradient(135deg, rgba(76, 145, 255, 0.9), rgba(58, 86, 180, 0.9));
 }
 
+button.primary.solid {
+  background: linear-gradient(135deg, rgba(90, 180, 120, 0.9), rgba(60, 140, 95, 0.9));
+}
 button.ghost {
   background: transparent;
   border-color: rgba(160, 200, 255, 0.2);

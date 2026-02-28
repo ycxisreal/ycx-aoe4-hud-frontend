@@ -50,11 +50,15 @@ const init = async () => {
   screenInfo.value = await window.api.getScreenInfo();
   window.api.setLocked(locked.value);
   await refreshMatchInfo();
+  const currentStatus = await window.api.getBackendStatus();
+  if (currentStatus) {
+    backendStatus.value = currentStatus;
+  }
 };
 
 // 处理配置更新
 const applyConfigPatch = async (patch: Partial<AppConfig>) => {
-  const next = await window.api.updateConfig(patch);
+  const next = await window.api.updateConfig(JSON.parse(JSON.stringify(patch)));
   config.value = next;
   window.api.broadcastConfig(next);
   return next;
@@ -73,6 +77,7 @@ const toggleLock = async () => {
 
 // 打开标定向导
 const openCalibration = () => {
+  console.log("[calibration] open:", config.value?.calibration?.rois?.length ?? 0);
   isCalibrating.value = true;
   window.api.startCalibration();
 };
@@ -85,14 +90,20 @@ const closeCalibration = async () => {
 
 // 保存标定结果
 const handleCalibrationComplete = async (rois: RoiItem[], signature: AppConfig["calibration"]["signature"]) => {
-  await applyConfigPatch({
-    calibration: {
-      rois,
-      signature,
-    },
-  });
-  isCalibrating.value = false;
-  await window.api.stopCalibration();
+  console.log("[calibration] apply:", { rois: rois.length, signature });
+  try {
+    await applyConfigPatch({
+      calibration: {
+        rois,
+        signature,
+      },
+    });
+  } catch (error) {
+    console.log("[calibration] apply error:", error);
+  } finally {
+    isCalibrating.value = false;
+    await window.api.stopCalibration();
+  }
 };
 
 // 更新设置
@@ -139,11 +150,24 @@ const fetchPlayerSummary = async (profileId: string): Promise<PlayerSummary | nu
 
 // 识别开始
 const startRecognition = async () => {
+  if (!config.value) {
+    return;
+  }
+  const next = await applyConfigPatch({
+    recognition: { ...config.value.recognition, enabled: true },
+  });
+  window.api.broadcastConfig(next);
   await window.api.startRecognition();
 };
 
 // 识别停止
 const stopRecognition = async () => {
+  if (config.value) {
+    const next = await applyConfigPatch({
+      recognition: { ...config.value.recognition, enabled: false },
+    });
+    window.api.broadcastConfig(next);
+  }
   await window.api.stopRecognition();
 };
 
@@ -155,6 +179,7 @@ const bindBackendEvents = () => {
   });
   const offData = window.api.onBackendData((payload) => {
     recognitionData.value = payload.fields;
+    console.log("[backend-data]", payload);
   });
   const offAlert = window.api.onBackendAlert((payload) => {
     lastAlert.value = payload;

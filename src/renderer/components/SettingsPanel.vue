@@ -25,8 +25,8 @@ const form = reactive<AppConfig>({
   hotkeys: {},
   players: { self: { profileId: "" } },
   backend: { wsUrl: "ws://127.0.0.1:8765", autoReconnect: true },
-  recognition: { enabled: false, hz: 2 },
-  templates: { setName: "default_100" },
+  recognition: { enabled: false, hz: 1 },
+  tts: { enabled: true, rate: 150, volume: 1 },
   calibration: { rois: [] },
 });
 
@@ -66,7 +66,7 @@ const handleSave = () => {
         </label>
         <label>
           识别频率 (Hz)
-          <input v-model.number="form.recognition.hz" type="number" min="1" max="5" />
+          <input v-model.number="form.recognition.hz" type="number" min="1" max="2" />
         </label>
         <label>
           透明度

@@ -25,6 +25,7 @@ const api = {
   startRecognition: () => ipcRenderer.invoke("backend:start"),
   stopRecognition: () => ipcRenderer.invoke("backend:stop"),
   reconnectBackend: () => ipcRenderer.invoke("backend:reconnect"),
+  getBackendStatus: () => ipcRenderer.invoke("backend:status"),
   // 标定模式
   startCalibration: () => ipcRenderer.invoke("calibration:start"),
   stopCalibration: () => ipcRenderer.invoke("calibration:stop"),

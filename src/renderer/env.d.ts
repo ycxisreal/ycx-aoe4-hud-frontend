@@ -17,6 +17,7 @@ export type WindowApi = {
   startRecognition: () => Promise<void>;
   stopRecognition: () => Promise<void>;
   reconnectBackend: () => Promise<void>;
+  getBackendStatus: () => Promise<BackendStatusPayload | null>;
   startCalibration: () => Promise<void>;
   stopCalibration: () => Promise<void>;
   onBackendStatus: (handler: (payload: BackendStatusPayload) => void) => Unsubscribe;

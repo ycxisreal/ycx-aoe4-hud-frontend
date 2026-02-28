@@ -1,4 +1,5 @@
 import { EventEmitter } from "node:events";
+import { screen } from "electron";
 import WebSocket from "ws";
 import {
   AppConfig,
@@ -38,23 +39,26 @@ export function createBackendClient(getConfig: () => AppConfig) {
 
     clearReconnect();
     manualClose = false;
+    console.log("[backend-ws] connecting:", backend.wsUrl);
     emitStatus({ state: "starting", message: "正在连接后端..." });
 
     socket = new WebSocket(backend.wsUrl);
 
     socket.on("open", () => {
       reconnectIndex = 0;
+      console.log("[backend-ws] connected");
       emitStatus({ state: "ready", message: "后端已连接" });
       emitter.emit("connected");
       sendConfig();
     });
 
-    socket.on("message", (data) => {
+    socket.on("message", (data: any) => {
       handleMessage(data.toString());
     });
 
     socket.on("close", () => {
       socket = null;
+      console.log("[backend-ws] disconnected");
       emitStatus({ state: "stopped", message: "后端已断开" });
       emitter.emit("disconnected");
       if (!manualClose && getConfig().backend.autoReconnect) {
@@ -62,7 +66,8 @@ export function createBackendClient(getConfig: () => AppConfig) {
       }
     });
 
-    socket.on("error", (err) => {
+    socket.on("error", (err: any) => {
+      console.log("[backend-ws] error:", err.message);
       emitStatus({ state: "error", message: err.message });
     });
   };
@@ -84,13 +89,19 @@ export function createBackendClient(getConfig: () => AppConfig) {
   // 发送配置
   const sendConfig = (signature?: ScreenSignature) => {
     const config = getConfig();
+    const screenSignature = signature ?? config.calibration.signature ?? buildScreenSignature();
     const payload = {
       clientId: "overlay",
-      screen: signature ?? config.calibration.signature,
+      screen: screenSignature,
       rois: config.calibration.rois,
       recognition: config.recognition,
-      templates: config.templates,
+      tts: config.tts,
     };
+    console.log("[backend-ws] send CONFIG_SET:", {
+      screen: screenSignature,
+      rois: payload.rois.length,
+      recognition: payload.recognition,
+    });
     sendMessage("CONFIG_SET", payload);
   };
 
@@ -133,11 +144,13 @@ export function createBackendClient(getConfig: () => AppConfig) {
     if (!parsed) {
       return;
     }
+    console.log("[backend-ws] recv:", parsed.type);
     switch (parsed.type) {
       case "BACKEND_STATUS":
         emitter.emit("status", parsed.payload as BackendStatusPayload);
         break;
       case "DATA":
+        console.log("[backend-ws] data:", parsed.payload);
         emitter.emit("data", parsed.payload as BackendDataPayload);
         break;
       case "ALERT_EVENT":
@@ -160,6 +173,17 @@ export function createBackendClient(getConfig: () => AppConfig) {
       payload,
     };
     socket.send(JSON.stringify(message));
+  };
+
+  // 构造屏幕签名（兜底）
+  const buildScreenSignature = (): ScreenSignature => {
+    const display = screen.getPrimaryDisplay();
+    return {
+      width: display.bounds.width,
+      height: display.bounds.height,
+      dpiScale: display.scaleFactor,
+      displayId: display.id,
+    };
   };
 
   // 派发状态

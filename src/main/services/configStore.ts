@@ -13,7 +13,7 @@ const DEFAULT_CONFIG: AppConfig = {
     locked: true,
   },
   hotkeys: {
-    toggleLock: "Control+Alt+L",
+    toggleLock: "Alt+W",
   },
   players: {
     self: { profileId: "" },
@@ -24,10 +24,12 @@ const DEFAULT_CONFIG: AppConfig = {
   },
   recognition: {
     enabled: false,
-    hz: 2,
+    hz: 1,
   },
-  templates: {
-    setName: "default_100",
+  tts: {
+    enabled: true,
+    rate: 150,
+    volume: 1,
   },
   calibration: {
     rois: [],
@@ -51,6 +53,10 @@ export function initConfigStore() {
     const current = store.store;
     const merged = mergeDeep(current, patch);
     store.store = merged;
+    console.log("[config-store] update:", {
+      rois: merged.calibration?.rois?.length ?? 0,
+      hasSignature: Boolean(merged.calibration?.signature),
+    });
     return merged;
   };
 
@@ -59,6 +65,7 @@ export function initConfigStore() {
     updateConfig,
   };
 }
+
 
 // 深度合并对象，数组直接替换
 function mergeDeep<T>(base: T, patch: Partial<T>): T {

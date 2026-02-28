@@ -52,6 +52,7 @@ export function createOverlayWindow() {
 
   if (process.env.ELECTRON_RENDERER_URL) {
     overlayWindow.loadURL(process.env.ELECTRON_RENDERER_URL);
+    overlayWindow.webContents.openDevTools({ mode: "detach" });
   } else {
     overlayWindow.loadFile(path.join(__dirname, "../renderer/index.html"));
   }

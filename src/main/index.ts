@@ -8,7 +8,7 @@ import { AppConfig, BackendDataPayload, BackendStatusPayload, AlertEventPayload 
 // 注册全局快捷键
 const registerShortcuts = (getConfig: () => AppConfig, applyLockState: (locked: boolean) => void) => {
   globalShortcut.unregisterAll();
-  const hotkey = getConfig().hotkeys.toggleLock || "Control+Alt+L";
+  const hotkey = getConfig().hotkeys.toggleLock || "Alt+W";
   const registered = globalShortcut.register(hotkey, () => {
     const current = getConfig();
     const nextLocked = !current.overlay.locked;
@@ -16,7 +16,7 @@ const registerShortcuts = (getConfig: () => AppConfig, applyLockState: (locked: 
   });
 
   if (!registered) {
-    const fallback = "Alt+Shift+L";
+    const fallback = "Alt+Shift+W";
     globalShortcut.register(fallback, () => {
       const current = getConfig();
       const nextLocked = !current.overlay.locked;
@@ -30,9 +30,11 @@ const bootstrap = () => {
   const store = initConfigStore();
   const window = createOverlayWindow();
   const backend = createBackendClient(store.getConfig);
+  let latestStatus: BackendStatusPayload | null = null;
 
   // 监听后端事件并转发给渲染进程
   const forwardStatus = (payload: BackendStatusPayload) => {
+    latestStatus = payload;
     window.webContents.send("backend:status", payload);
   };
   const forwardData = (payload: BackendDataPayload) => {
@@ -77,9 +79,16 @@ const bootstrap = () => {
       exitCalibration(store.getConfig().overlay.locked);
     },
     onConfigUpdated: (next) => syncConfigToBackend(next as AppConfig),
+    getBackendStatus: () => latestStatus,
   });
 
   backend.connect();
+
+  window.webContents.on("did-finish-load", () => {
+    if (latestStatus) {
+      window.webContents.send("backend:status", latestStatus);
+    }
+  });
 };
 
 app.whenReady().then(bootstrap);

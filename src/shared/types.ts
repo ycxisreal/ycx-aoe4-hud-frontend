@@ -45,17 +45,6 @@ export type RecognitionConfig = {
   hz: number;
 };
 
-export type TemplatesConfig = {
-  setName?: string;
-  path?: string;
-  autoScale?: boolean;
-};
-
-export type DebugConfig = {
-  saveRoiFrames?: boolean;
-  saveDir?: string;
-};
-
 export type TtsConfig = {
   enabled: boolean;
   rate?: number;
@@ -90,7 +79,7 @@ export type AppConfig = {
     autoReconnect: boolean;
   };
   recognition: RecognitionConfig;
-  templates: TemplatesConfig;
+  tts?: TtsConfig;
   calibration: {
     signature?: ScreenSignature;
     rois: RoiItem[];
