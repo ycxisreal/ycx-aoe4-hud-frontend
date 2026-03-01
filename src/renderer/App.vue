@@ -29,10 +29,17 @@ const showSettings = ref(false);
 const showHelp = ref(false);
 const isRefreshingMatch = ref(false);
 const retryTimer = ref<number | null>(null);
+const retryReason = ref<"await_ongoing" | "missing_metrics" | null>(null);
+const RETRY_DELAY_MS = 8000;
+const MAX_AWAIT_ONGOING_RETRY = 5;
+const MAX_MISSING_METRICS_RETRY = 6;
+const MISSING_METRICS_RETRY_WINDOW_MS = 60_000;
 const autoRefreshState = ref({
   inGame: false,
   lastTimerSeconds: -1,
-  retryCount: 0,
+  awaitOngoingRetryCount: 0,
+  missingMetricsRetryCount: 0,
+  missingMetricsFirstSeenAt: 0,
 });
 
 const calibrationSteps: CalibrationStep[] = [
@@ -147,6 +154,7 @@ const clearRetryTimer = () => {
     window.clearTimeout(retryTimer.value);
     retryTimer.value = null;
   }
+  retryReason.value = null;
 };
 
 // 解析计时器文本为秒
@@ -228,6 +236,30 @@ const buildMatchView = (data: any, selfProfileId: string): MatchView | null => {
   };
 };
 
+// 判断 ongoing 对局是否缺失关键分数字段（rating/mmr）
+const hasMissingRatingOrElo = (view: MatchView): boolean => {
+  const allPlayers = [...view.selfTeam, ...view.enemyTeam];
+  return allPlayers.some((player) => player.rating === undefined || player.elo === undefined);
+};
+
+// 重置 rating/mmr 缺失补拉状态
+const resetMissingMetricsRetryState = () => {
+  autoRefreshState.value.missingMetricsRetryCount = 0;
+  autoRefreshState.value.missingMetricsFirstSeenAt = 0;
+};
+
+// 判断 rating/mmr 缺失补拉是否仍允许继续
+const canRetryForMissingMetrics = (): boolean => {
+  if (autoRefreshState.value.missingMetricsFirstSeenAt <= 0) {
+    return true;
+  }
+  const elapsedMs = Date.now() - autoRefreshState.value.missingMetricsFirstSeenAt;
+  return (
+    autoRefreshState.value.missingMetricsRetryCount < MAX_MISSING_METRICS_RETRY &&
+    elapsedMs <= MISSING_METRICS_RETRY_WINDOW_MS
+  );
+};
+
 // 请求最近一场对局
 const fetchLastGame = async (profileId: string): Promise<any | null> => {
   const endpoint = `https://aoe4world.com/api/v0/players/${profileId}/games/last?include_stats=true`;
@@ -238,19 +270,44 @@ const fetchLastGame = async (profileId: string): Promise<any | null> => {
   return response.json();
 };
 
-// 调度自动重试刷新
-const scheduleRetryRefresh = () => {
-  if (retryTimer.value !== null || !autoRefreshState.value.inGame || autoRefreshState.value.retryCount >= 5) {
+// 调度自动重试刷新（等待 ongoing / 补齐 rating+mmr）
+const scheduleRetryRefresh = (reason: "await_ongoing" | "missing_metrics") => {
+  if (retryTimer.value !== null) {
     return;
   }
+  if (reason === "await_ongoing" && !autoRefreshState.value.inGame) {
+    return;
+  }
+  if (reason === "missing_metrics" && !matchView.value?.ongoing) {
+    return;
+  }
+  if (reason === "await_ongoing" && autoRefreshState.value.awaitOngoingRetryCount >= MAX_AWAIT_ONGOING_RETRY) {
+    return;
+  }
+  if (reason === "missing_metrics" && !canRetryForMissingMetrics()) {
+    return;
+  }
+  retryReason.value = reason;
   retryTimer.value = window.setTimeout(async () => {
     retryTimer.value = null;
-    autoRefreshState.value.retryCount += 1;
-    await refreshMatchInfo();
-    if (autoRefreshState.value.inGame && (!matchView.value || !matchView.value.ongoing)) {
-      scheduleRetryRefresh();
+    const currentReason = retryReason.value;
+    retryReason.value = null;
+    if (currentReason === "await_ongoing") {
+      autoRefreshState.value.awaitOngoingRetryCount += 1;
+    } else if (currentReason === "missing_metrics") {
+      autoRefreshState.value.missingMetricsRetryCount += 1;
     }
-  }, 8000);
+    await refreshMatchInfo();
+    if (!currentReason) {
+      return;
+    }
+    if (currentReason === "await_ongoing" && autoRefreshState.value.inGame && (!matchView.value || !matchView.value.ongoing)) {
+      scheduleRetryRefresh("await_ongoing");
+    }
+    if (currentReason === "missing_metrics" && matchView.value?.ongoing && hasMissingRatingOrElo(matchView.value)) {
+      scheduleRetryRefresh("missing_metrics");
+    }
+  }, RETRY_DELAY_MS);
 };
 
 // 刷新对局数据（手动与自动共用）
@@ -281,14 +338,32 @@ const refreshMatchInfo = async () => {
       return;
     }
     matchView.value = parsed;
-    matchNotice.value = parsed.ongoing
-      ? `当前模式：${parsed.modeLabel}（对局进行中）`
-      : `当前模式：${parsed.modeLabel}（最近一场已结束）`;
     if (parsed.ongoing) {
-      autoRefreshState.value.retryCount = 0;
-      clearRetryTimer();
+      autoRefreshState.value.awaitOngoingRetryCount = 0;
+      const missingMetrics = hasMissingRatingOrElo(parsed);
+      if (missingMetrics) {
+        if (autoRefreshState.value.missingMetricsFirstSeenAt <= 0) {
+          autoRefreshState.value.missingMetricsFirstSeenAt = Date.now();
+          autoRefreshState.value.missingMetricsRetryCount = 0;
+        }
+        matchNotice.value = `当前模式：${parsed.modeLabel}（对局进行中，分数信息补拉中）`;
+        if (canRetryForMissingMetrics()) {
+          scheduleRetryRefresh("missing_metrics");
+        } else {
+          matchNotice.value = `当前模式：${parsed.modeLabel}（对局进行中，分数暂缺，已停止补拉）`;
+        }
+      } else {
+        resetMissingMetricsRetryState();
+        clearRetryTimer();
+        matchNotice.value = `当前模式：${parsed.modeLabel}（对局进行中）`;
+      }
     } else if (autoRefreshState.value.inGame) {
-      scheduleRetryRefresh();
+      resetMissingMetricsRetryState();
+      matchNotice.value = `当前模式：${parsed.modeLabel}（最近一场已结束）`;
+      scheduleRetryRefresh("await_ongoing");
+    } else {
+      resetMissingMetricsRetryState();
+      matchNotice.value = `当前模式：${parsed.modeLabel}（最近一场已结束）`;
     }
   } catch {
     matchView.value = null;
@@ -359,24 +434,29 @@ watch(
     if (timerSeconds === null) {
       autoRefreshState.value.inGame = false;
       autoRefreshState.value.lastTimerSeconds = -1;
-      autoRefreshState.value.retryCount = 0;
+      autoRefreshState.value.awaitOngoingRetryCount = 0;
+      resetMissingMetricsRetryState();
       clearRetryTimer();
       return;
     }
     if (!autoRefreshState.value.inGame) {
       autoRefreshState.value.inGame = true;
-      autoRefreshState.value.retryCount = 0;
+      autoRefreshState.value.awaitOngoingRetryCount = 0;
+      resetMissingMetricsRetryState();
       void refreshMatchInfo();
     } else if (
       autoRefreshState.value.lastTimerSeconds >= 0 &&
       timerSeconds + 90 < autoRefreshState.value.lastTimerSeconds
     ) {
-      autoRefreshState.value.retryCount = 0;
+      autoRefreshState.value.awaitOngoingRetryCount = 0;
+      resetMissingMetricsRetryState();
       void refreshMatchInfo();
     }
     autoRefreshState.value.lastTimerSeconds = timerSeconds;
     if (!matchView.value || !matchView.value.ongoing) {
-      scheduleRetryRefresh();
+      scheduleRetryRefresh("await_ongoing");
+    } else if (hasMissingRatingOrElo(matchView.value)) {
+      scheduleRetryRefresh("missing_metrics");
     }
   }
 );
