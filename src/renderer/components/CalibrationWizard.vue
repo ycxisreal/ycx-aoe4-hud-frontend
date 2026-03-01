@@ -36,6 +36,7 @@ const state = reactive({
   completedIds: new Set<string>(),
   lastSavedName: "",
   errorMessage: "",
+  showSavedRois: false,
 });
 
 const overlayRef = ref<HTMLDivElement | null>(null);
@@ -52,6 +53,7 @@ const resetState = () => {
   state.dragRect = null;
   state.lastSavedName = "";
   state.errorMessage = "";
+  state.showSavedRois = false;
 };
 
 watch(
@@ -158,12 +160,24 @@ const finish = () => {
     state.errorMessage = "请先完成至少一个区域并点击“确认保存”。";
     return;
   }
+  state.showSavedRois = false;
   const signature: ScreenSignature = buildSignature();
   console.log("[calibration] finish:", {
     rois: state.rois.length,
     signature,
   });
   emit("complete", state.rois, signature);
+};
+
+// 切换已标定区域可视化
+const toggleSavedRois = () => {
+  state.showSavedRois = !state.showSavedRois;
+};
+
+// 退出标定并隐藏可视化
+const closeWizard = () => {
+  state.showSavedRois = false;
+  emit("close");
 };
 
 // 规范矩形坐标
@@ -228,12 +242,19 @@ const clamp = (value: number, min: number, max: number) => Math.min(max, Math.ma
       </div>
       <div class="hint subtle">已保存区域数：{{ state.rois.length }}</div>
       <div class="actions">
-        <button type="button" @click="prevStep">上一步</button>
-        <button type="button" @click="skipStep">跳过</button>
-        <button type="button" class="primary" @click="confirmRect">确认保存</button>
-        <button type="button" @click="nextStep">下一步</button>
-        <button type="button" class="primary solid" @click="finish">完成</button>
-        <button type="button" class="ghost" @click="emit('close')">退出</button>
+        <div class="action-row">
+          <button type="button" @click="prevStep">上一步</button>
+          <button type="button" @click="skipStep">跳过</button>
+          <button type="button" class="primary" @click="confirmRect">确认保存位置</button>
+          <button type="button" @click="nextStep">下一步</button>
+        </div>
+        <div class="action-row">
+          <button type="button" class="primary solid" @click="finish">完成并保存所有</button>
+          <button type="button" class="ghost" @click="closeWizard">退出</button>
+          <button type="button" :class="{ active: state.showSavedRois }" @click="toggleSavedRois">
+            {{ state.showSavedRois ? "隐藏已标定位置" : "查看已标定位置" }}
+          </button>
+        </div>
       </div>
     </div>
 
@@ -254,6 +275,19 @@ const clamp = (value: number, min: number, max: number) => Math.min(max, Math.ma
           height: state.dragRect.h + 'px',
         }"
       ></div>
+      <div
+        v-for="roi in state.showSavedRois ? state.rois : []"
+        :key="`saved-${roi.id}`"
+        class="saved-selection"
+        :style="{
+          left: roi.rect.x + 'px',
+          top: roi.rect.y + 'px',
+          width: roi.rect.w + 'px',
+          height: roi.rect.h + 'px',
+        }"
+      >
+        <span class="saved-label">{{ roi.name }}</span>
+      </div>
     </div>
   </div>
 </template>
@@ -271,12 +305,13 @@ const clamp = (value: number, min: number, max: number) => Math.min(max, Math.ma
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  background: rgba(8, 12, 20, 0.88);
-  border: 1px solid rgba(120, 170, 255, 0.35);
+  background: rgba(8, 12, 20, 0.96);
+  border: 1px solid rgba(145, 192, 255, 0.55);
   border-radius: 16px;
   padding: 12px 16px;
   color: #e8f0ff;
-  backdrop-filter: blur(10px);
+  backdrop-filter: blur(0);
+  -webkit-backdrop-filter: blur(0);
   z-index: 2;
   pointer-events: auto;
 }
@@ -319,6 +354,11 @@ const clamp = (value: number, min: number, max: number) => Math.min(max, Math.ma
 }
 .actions {
   margin-top: 10px;
+  display: grid;
+  gap: 8px;
+}
+
+.action-row {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
@@ -341,6 +381,12 @@ button.primary {
 button.primary.solid {
   background: linear-gradient(135deg, rgba(90, 180, 120, 0.9), rgba(60, 140, 95, 0.9));
 }
+
+button.active {
+  border-color: rgba(125, 220, 170, 0.8);
+  box-shadow: 0 0 0 1px rgba(125, 220, 170, 0.35);
+}
+
 button.ghost {
   background: transparent;
   border-color: rgba(160, 200, 255, 0.2);
@@ -358,5 +404,23 @@ button.ghost {
   border: 2px solid rgba(120, 200, 255, 0.8);
   background: rgba(80, 150, 255, 0.2);
   box-shadow: 0 0 20px rgba(80, 150, 255, 0.4);
+}
+
+.saved-selection {
+  position: absolute;
+  border: 2px dashed rgba(124, 231, 171, 0.95);
+  background: rgba(76, 173, 122, 0.16);
+  box-shadow: 0 0 10px rgba(85, 200, 140, 0.35);
+}
+
+.saved-label {
+  position: absolute;
+  top: -18px;
+  left: 0;
+  font-size: 11px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  color: rgba(220, 255, 235, 0.95);
+  background: rgba(52, 126, 86, 0.85);
 }
 </style>
