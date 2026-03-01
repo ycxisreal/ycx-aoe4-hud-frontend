@@ -68,10 +68,6 @@ const handleSave = () => {
           识别频率 (Hz)
           <input v-model.number="form.recognition.hz" type="number" min="1" max="2" />
         </label>
-        <label>
-          透明度
-          <input v-model.number="form.overlay.opacity" type="number" min="0.2" max="1" step="0.05" />
-        </label>
       </div>
       <div class="settings-actions">
         <button type="button" @click="emit('close')">取消</button>
@@ -97,52 +93,53 @@ const handleSave = () => {
   overflow-y: scroll;
   background: rgba(12, 16, 30, 0.94);
   border: 1px solid rgba(120, 170, 255, 0.25);
-  border-radius: 18px;
-  padding: 18px 20px 16px;
+  border-radius: clamp(0.7rem, 1.8vw, 1.15rem);
+  padding: clamp(0.75rem, 1.8vw, 1.15rem) clamp(0.85rem, 2vw, 1.25rem) clamp(0.7rem, 1.6vw, 1rem);
   color: #e8f0ff;
   scrollbar-width: thin;
   scrollbar-color: rgba(120, 170, 255, 0.35) rgba(6, 10, 18, 0.2);
 }
 
 .settings-title {
-  font-size: 18px;
-  margin-bottom: 2px;
+  font-size: clamp(0.95rem, 1.8vw, 1.2rem);
+  margin-bottom: clamp(0.1rem, 0.4vw, 0.2rem);
 }
 
 .settings-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
+  gap: clamp(0.5rem, 1.2vw, 0.8rem);
 }
 
 label {
   display: grid;
-  gap: 6px;
-  font-size: 12px;
+  gap: clamp(0.25rem, 0.6vw, 0.4rem);
+  font-size: clamp(0.68rem, 1.1vw, 0.8rem);
 }
 
 input {
   background: rgba(10, 14, 24, 0.85);
   border: 1px solid rgba(120, 170, 255, 0.3);
-  border-radius: 10px;
-  padding: 6px 8px;
+  border-radius: clamp(0.4rem, 1vw, 0.6rem);
+  padding: clamp(0.28rem, 0.65vw, 0.42rem) clamp(0.35rem, 0.8vw, 0.5rem);
   color: #e8f0ff;
+  font-size: clamp(0.68rem, 1.1vw, 0.8rem);
 }
 
 .settings-actions {
-  margin-top: 14px;
+  margin-top: clamp(0.55rem, 1.4vw, 0.9rem);
   display: flex;
   justify-content: flex-end;
-  gap: 10px;
+  gap: clamp(0.4rem, 1vw, 0.65rem);
 }
 
 button {
   border: 1px solid rgba(160, 200, 255, 0.35);
   background: rgba(20, 24, 36, 0.8);
   color: #e8f0ff;
-  padding: 6px 12px;
-  border-radius: 10px;
-  font-size: 12px;
+  padding: clamp(0.28rem, 0.65vw, 0.42rem) clamp(0.5rem, 1.2vw, 0.75rem);
+  border-radius: clamp(0.4rem, 1vw, 0.6rem);
+  font-size: clamp(0.68rem, 1.1vw, 0.8rem);
   cursor: pointer;
 }
 
