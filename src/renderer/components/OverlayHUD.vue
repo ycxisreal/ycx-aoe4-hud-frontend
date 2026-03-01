@@ -160,7 +160,7 @@ const statusText = computed(() => props.backendStatus.message ?? props.backendSt
 
 .hud-panels {
   display: grid;
-  grid-template-columns: minmax(0, 1.6fr) minmax(5.2rem, 0.45fr) minmax(0, 1.6fr);
+  grid-template-columns: minmax(0, 1.6fr) minmax(6.2rem, 0.45fr) minmax(0, 1.6fr);
   gap: clamp(0.45rem, 1vw, 0.8rem);
 }
 
@@ -180,8 +180,8 @@ const statusText = computed(() => props.backendStatus.message ?? props.backendSt
 
 .mode-kind {
   margin-top: clamp(0.15rem, 0.35vw, 0.3rem);
-  font-size: clamp(0.95rem, 2vw, 1.35rem);
-  font-weight: 700;
+  font-size: clamp(0.75rem, 1.8vw, 1.15rem);
+  font-weight: 600;
   letter-spacing: 0.05em;
 }
 
