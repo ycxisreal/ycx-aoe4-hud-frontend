@@ -49,7 +49,8 @@ const calibrationSteps: CalibrationStep[] = [
 ];
 
 const locked = computed(() => config.value?.overlay.locked ?? true);
-const recognitionRunning = computed(() => backendStatus.value.state === "running");
+// 识别运行态（用于避免 READY 状态误覆盖前端运行显示）
+const recognitionRunning = ref(false);
 const toggleLockHotkey = computed(() => config.value?.hotkeys?.toggleLock || "Alt+W");
 
 let unsubscribers: Array<() => void> = [];
@@ -63,6 +64,9 @@ const init = async () => {
   const currentStatus = await window.api.getBackendStatus();
   if (currentStatus) {
     backendStatus.value = currentStatus;
+    if (currentStatus.state === "running") {
+      recognitionRunning.value = true;
+    }
   }
 };
 
@@ -82,10 +86,8 @@ const lockOverlay = async () => {
   if (locked.value) {
     return;
   }
-  const next = await applyConfigPatch({
-    overlay: { ...config.value.overlay, locked: true },
-  });
-  window.api.setLocked(next.overlay.locked);
+  // 仅切换主进程锁定状态，避免额外配置广播影响识别状态
+  window.api.setLocked(true);
 };
 
 // 切换帮助面板显示状态
@@ -301,6 +303,7 @@ const startRecognition = async () => {
   if (!config.value) {
     return;
   }
+  recognitionRunning.value = true;
   const next = await applyConfigPatch({
     recognition: { ...config.value.recognition, enabled: true },
   });
@@ -310,6 +313,7 @@ const startRecognition = async () => {
 
 // 识别停止
 const stopRecognition = async () => {
+  recognitionRunning.value = false;
   if (config.value) {
     const next = await applyConfigPatch({
       recognition: { ...config.value.recognition, enabled: false },
@@ -323,7 +327,16 @@ const stopRecognition = async () => {
 // 绑定后端事件
 const bindBackendEvents = () => {
   const offStatus = window.api.onBackendStatus((payload) => {
+    // 若识别运行中收到 READY，保留当前运行显示，避免锁定等操作导致前端误回退
+    if (payload.state === "ready" && recognitionRunning.value) {
+      return;
+    }
     backendStatus.value = payload;
+    if (payload.state === "running") {
+      recognitionRunning.value = true;
+    } else if (payload.state === "stopped") {
+      recognitionRunning.value = false;
+    }
   });
   const offData = window.api.onBackendData((payload) => {
     recognitionData.value = payload.fields;
