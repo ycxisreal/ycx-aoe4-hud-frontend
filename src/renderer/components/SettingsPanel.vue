@@ -54,7 +54,13 @@ const handleSave = () => {
 <template>
   <div v-if="open" class="settings-mask">
     <div class="settings-panel">
-      <div class="settings-title">设置面板</div>
+      <div class="settings-header">
+        <div class="settings-title">设置面板</div>
+        <div class="settings-actions">
+          <button type="button" @click="emit('close')">取消</button>
+          <button type="button" class="primary" @click="handleSave">保存</button>
+        </div>
+      </div>
       <div class="settings-grid">
         <label>
           我方 profileId
@@ -68,10 +74,6 @@ const handleSave = () => {
           识别频率 (Hz)
           <input v-model.number="form.recognition.hz" type="number" min="1" max="2" />
         </label>
-      </div>
-      <div class="settings-actions">
-        <button type="button" @click="emit('close')">取消</button>
-        <button type="button" class="primary" @click="handleSave">保存</button>
       </div>
     </div>
   </div>
@@ -102,7 +104,14 @@ const handleSave = () => {
 
 .settings-title {
   font-size: clamp(0.95rem, 1.8vw, 1.2rem);
-  margin-bottom: clamp(0.1rem, 0.4vw, 0.2rem);
+}
+
+.settings-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: clamp(0.4rem, 1vw, 0.7rem);
+  margin-bottom: clamp(0.25rem, 0.65vw, 0.5rem);
 }
 
 .settings-grid {
@@ -127,10 +136,10 @@ input {
 }
 
 .settings-actions {
-  margin-top: clamp(0.55rem, 1.4vw, 0.9rem);
   display: flex;
   justify-content: flex-end;
   gap: clamp(0.4rem, 1vw, 0.65rem);
+  flex-shrink: 0;
 }
 
 button {
@@ -164,5 +173,48 @@ button.primary {
 
 .settings-panel::-webkit-scrollbar-thumb:hover {
   background: rgba(120, 170, 255, 0.5);
+}
+
+@media (max-width: 620px) {
+  .settings-panel {
+    width: 95vw;
+    height: 84vh;
+    border-radius: 0.58rem;
+    padding: 0.52rem 0.62rem 0.56rem;
+  }
+
+  .settings-header {
+    margin-bottom: 0.28rem;
+    gap: 0.38rem;
+  }
+
+  .settings-title {
+    font-size: 0.78rem;
+  }
+
+  .settings-grid {
+    gap: 0.35rem;
+  }
+
+  label {
+    gap: 0.18rem;
+    font-size: 0.62rem;
+  }
+
+  input {
+    border-radius: 0.38rem;
+    padding: 0.2rem 0.32rem;
+    font-size: 0.62rem;
+  }
+
+  .settings-actions {
+    gap: 0.3rem;
+  }
+
+  button {
+    padding: 0.2rem 0.42rem;
+    border-radius: 0.38rem;
+    font-size: 0.6rem;
+  }
 }
 </style>

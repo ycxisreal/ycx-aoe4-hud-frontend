@@ -56,6 +56,12 @@ const showElo = (player: MatchPlayerView) => {
 };
 
 const statusText = computed(() => props.backendStatus.message ?? props.backendStatus.state);
+const githubUrl = "https://github.com/ycxisreal";
+
+// 打开 GitHub 外链（通过主进程调用系统浏览器）
+const onOpenGithub = async () => {
+  await window.api.openExternalUrl(githubUrl);
+};
 </script>
 
 <template>
@@ -115,14 +121,14 @@ const statusText = computed(() => props.backendStatus.message ?? props.backendSt
       <span v-if="lastAlert" class="hud-alert">{{ lastAlert.text }}</span>
       <div class="hud-actions">
         <button type="button" aria-label="刷新对局" @click="onRefresh">
-          <span class="icon refresh" aria-hidden="true">⟳</span>
+          <span class="icon refresh" aria-hidden="true">🔄</span>
         </button>
         <button type="button" aria-label="标定区域" @click="onCalibrate">
-          <span class="icon target" aria-hidden="true">⌖</span>
+          <span class="icon target" aria-hidden="true">🎯</span>
           标定
         </button>
         <button type="button" aria-label="设置" @click="onSettings">
-          <span class="icon gear" aria-hidden="true">⚙</span>
+          <span class="icon gear" aria-hidden="true">⚙️</span>
         </button>
         <button v-if="!locked" type="button" aria-label="锁定覆盖层" @click="onLock">
           <span class="icon lock" aria-hidden="true">🔒</span>
@@ -137,12 +143,15 @@ const statusText = computed(() => props.backendStatus.message ?? props.backendSt
     </div>
     <div v-if="!locked && helpVisible" class="help-panel">
       <div class="help-title">功能说明</div>
-      <div class="help-line">⟳：手动刷新对局信息</div>
-      <div class="help-line">⌖ 标定：进入标定向导并标定ocr识别区域</div>
-      <div class="help-line">⚙：打开设置面板</div>
+      <div class="help-line">🔄：手动刷新对局信息</div>
+      <div class="help-line">🎯 标定：进入标定向导并标定ocr识别区域</div>
+      <div class="help-line">⚙️：打开设置面板</div>
       <div class="help-line">🔒：快速锁定并启用鼠标穿透</div>
       <div class="help-line">▶ / ■：开始或停止识别数值</div>
       <div class="help-line">快捷键：{{ helpHotkey }}（若注册失败使用 Alt+Shift+W）快速解锁与锁定</div>
+      <div class="help-line">made by 路易唐林
+        <a style="color: #7fd0ff" :href="githubUrl" target="_blank" rel="noreferrer" @click.prevent="onOpenGithub">github</a>
+      </div>
       <div class="help-actions">
         <button type="button" class="help-confirm" @click="onToggleHelp">确认</button>
       </div>
@@ -416,16 +425,67 @@ const statusText = computed(() => props.backendStatus.message ?? props.backendSt
 }
 @media (max-width: 620px) {
   .hud-panels {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1.6fr) minmax(4.4rem, 0.34fr) minmax(0, 1.6fr);
+    gap: 0.34rem;
   }
 
   .mode-card {
-    justify-items: start;
-    text-align: left;
+    padding: 0.12rem 0.2rem;
+  }
+
+  .mode-kind {
+    font-size: 0.66rem;
+    letter-spacing: 0.03em;
+  }
+
+  .mode-card .hud-title {
+    font-size: 0.52rem;
+    letter-spacing: 0.14em;
+  }
+
+  .mode-card .hud-row {
+    font-size: 0.56rem;
   }
 
   .hud-card {
-    padding: clamp(0.45rem, 1.5vw, 0.75rem) clamp(0.5rem, 1.8vw, 0.85rem);
+    padding: 0.34rem 0.42rem;
+  }
+
+  .hud-name {
+    font-size: 0.7rem;
+    max-width: 4.1rem;
+  }
+
+  .hud-row {
+    font-size: 0.6rem;
+  }
+
+  .metric {
+    font-size: 0.58rem;
+  }
+
+  .help-panel {
+    width: min(19rem, 90vw);
+    padding: 0.45rem 0.55rem;
+    right: 0.5rem;
+    bottom: 0.5rem;
+    max-height: calc(100vh - 1rem);
+    overflow-y: auto;
+  }
+
+  .help-title {
+    font-size: 0.68rem;
+    margin-bottom: 0.2rem;
+  }
+
+  .help-line {
+    font-size: 0.58rem;
+    line-height: 1.35;
+  }
+
+  .help-confirm {
+    font-size: 0.58rem;
+    padding: 0.16rem 0.42rem;
   }
 }
 </style>
