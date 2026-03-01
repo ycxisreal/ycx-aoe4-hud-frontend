@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import CalibrationWizard, { CalibrationStep } from "./components/CalibrationWizard.vue";
 import OverlayHUD from "./components/OverlayHUD.vue";
 import SettingsPanel from "./components/SettingsPanel.vue";
@@ -8,15 +8,16 @@ import {
   AppConfig,
   BackendDataPayload,
   BackendStatusPayload,
-  PlayerSummary,
+  MatchPlayerView,
+  MatchView,
   RoiItem,
   ScreenInfo,
 } from "../shared/types";
 
 const config = ref<AppConfig | null>(null);
 const screenInfo = ref<ScreenInfo | null>(null);
-const selfSummary = ref<PlayerSummary | null>(null);
-const opponentSummary = ref<PlayerSummary | null>(null);
+const matchView = ref<MatchView | null>(null);
+const matchNotice = ref("进入对局后开启识别将自动刷新对局信息，也可手动刷新获取最近一场对局。");
 const backendStatus = ref<BackendStatusPayload>({
   state: "starting",
   message: "未连接",
@@ -25,6 +26,14 @@ const recognitionData = ref<BackendDataPayload["fields"] | null>(null);
 const lastAlert = ref<AlertEventPayload | null>(null);
 const isCalibrating = ref(false);
 const showSettings = ref(false);
+const showHelp = ref(false);
+const isRefreshingMatch = ref(false);
+const retryTimer = ref<number | null>(null);
+const autoRefreshState = ref({
+  inGame: false,
+  lastTimerSeconds: -1,
+  retryCount: 0,
+});
 
 const calibrationSteps: CalibrationStep[] = [
   { id: "timer", name: "计时器", kind: "timer" },
@@ -41,6 +50,7 @@ const calibrationSteps: CalibrationStep[] = [
 
 const locked = computed(() => config.value?.overlay.locked ?? true);
 const recognitionRunning = computed(() => backendStatus.value.state === "running");
+const toggleLockHotkey = computed(() => config.value?.hotkeys?.toggleLock || "Alt+W");
 
 let unsubscribers: Array<() => void> = [];
 
@@ -64,20 +74,29 @@ const applyConfigPatch = async (patch: Partial<AppConfig>) => {
   return next;
 };
 
-// 切换锁定
-const toggleLock = async () => {
+// 快速锁定（仅提供锁定按钮，不提供解锁按钮）
+const lockOverlay = async () => {
   if (!config.value) {
     return;
   }
+  if (locked.value) {
+    return;
+  }
   const next = await applyConfigPatch({
-    overlay: { ...config.value.overlay, locked: !locked.value },
+    overlay: { ...config.value.overlay, locked: true },
   });
   window.api.setLocked(next.overlay.locked);
+};
+
+// 切换帮助面板显示状态
+const toggleHelpPanel = () => {
+  showHelp.value = !showHelp.value;
 };
 
 // 打开标定向导
 const openCalibration = () => {
   console.log("[calibration] open:", config.value?.calibration?.rois?.length ?? 0);
+  showHelp.value = false;
   isCalibrating.value = true;
   window.api.startCalibration();
 };
@@ -109,42 +128,171 @@ const handleCalibrationComplete = async (rois: RoiItem[], signature: AppConfig["
 // 更新设置
 const handleSettingsSave = async (next: AppConfig) => {
   await applyConfigPatch(next);
+  await refreshMatchInfo();
+  showHelp.value = false;
   showSettings.value = false;
 };
 
-// 刷新对局数据
-const refreshMatchInfo = async () => {
-  if (!config.value) {
-    return;
-  }
-  selfSummary.value = await fetchPlayerSummary(config.value.players.self.profileId);
-  if (config.value.players.opponent?.profileId) {
-    opponentSummary.value = await fetchPlayerSummary(config.value.players.opponent.profileId);
-  } else {
-    opponentSummary.value = null;
+// 打开设置面板并收起帮助面板
+const openSettingsPanel = () => {
+  showHelp.value = false;
+  showSettings.value = true;
+};
+
+// 清理自动重试定时器
+const clearRetryTimer = () => {
+  if (retryTimer.value !== null) {
+    window.clearTimeout(retryTimer.value);
+    retryTimer.value = null;
   }
 };
 
-// 拉取玩家摘要（字段映射需根据 AoE4World 文档校准）
-const fetchPlayerSummary = async (profileId: string): Promise<PlayerSummary | null> => {
-  if (!profileId) {
+// 解析计时器文本为秒
+const parseTimerSeconds = (timerText?: string): number | null => {
+  if (!timerText || !timerText.includes(":")) {
     return null;
   }
-  try {
-    const response = await fetch(`https://aoe4world.com/api/v0/players/${profileId}`);
-    if (!response.ok) {
-      return { profileId };
+  const [min, sec] = timerText.split(":");
+  const minNum = Number.parseInt(min, 10);
+  const secNum = Number.parseInt(sec, 10);
+  if (!Number.isFinite(minNum) || !Number.isFinite(secNum) || minNum < 0 || secNum < 0 || secNum > 59) {
+    return null;
+  }
+  return minNum * 60 + secNum;
+};
+
+// 根据 kind 生成模式文案
+const formatModeLabel = (kind: string): string => {
+  if (!kind) {
+    return "UNKNOWN";
+  }
+  return kind.toUpperCase();
+};
+
+// 解析模式统计 key（rank/wins/losses/win_rate）
+const resolveModeStatsKey = (kind: string): string => {
+  if (kind.startsWith("rm_")) {
+    return `${kind}_elo`;
+  }
+  return kind;
+};
+
+// 映射单个玩家的展示数据
+const mapPlayerView = (player: any, kind: string, selfProfileId: string): MatchPlayerView => {
+  const modeStatsKey = resolveModeStatsKey(kind);
+  const modeStats = player?.modes?.[modeStatsKey] ?? {};
+  return {
+    profileId: String(player?.profile_id ?? ""),
+    name: player?.name ?? String(player?.profile_id ?? "--"),
+    rating: typeof player?.rating === "number" ? player.rating : undefined,
+    elo: typeof player?.mmr === "number" ? player.mmr : undefined,
+    stats: {
+      rank: typeof modeStats?.rank === "number" ? modeStats.rank : undefined,
+      wins: typeof modeStats?.wins_count === "number" ? modeStats.wins_count : undefined,
+      losses: typeof modeStats?.losses_count === "number" ? modeStats.losses_count : undefined,
+      winRate: typeof modeStats?.win_rate === "number" ? modeStats.win_rate : undefined,
+    },
+    isSelf: String(player?.profile_id ?? "") === selfProfileId,
+  };
+};
+
+// 将接口数据转换为双方展示结构
+const buildMatchView = (data: any, selfProfileId: string): MatchView | null => {
+  const kind = String(data?.kind ?? "");
+  if (!kind || kind.includes("ffa")) {
+    return null;
+  }
+  const teams = Array.isArray(data?.teams) ? (data.teams as any[][]) : [];
+  if (teams.length !== 2) {
+    return null;
+  }
+  const selfTeamIndex = teams.findIndex((team) =>
+    Array.isArray(team) && team.some((player) => String(player?.profile_id ?? "") === selfProfileId)
+  );
+  const leftTeam = selfTeamIndex >= 0 ? teams[selfTeamIndex] : teams[0];
+  const rightTeam = selfTeamIndex >= 0 ? teams[1 - selfTeamIndex] : teams[1];
+  if (!Array.isArray(leftTeam) || !Array.isArray(rightTeam) || rightTeam.length === 0) {
+    return null;
+  }
+  const selfPlayers = leftTeam.map((player) => mapPlayerView(player, kind, selfProfileId));
+  const enemyPlayers = rightTeam.map((player) => mapPlayerView(player, kind, selfProfileId));
+  return {
+    kind,
+    modeLabel: formatModeLabel(kind),
+    ongoing: Boolean(data?.ongoing),
+    isSolo: leftTeam.length === 1 && rightTeam.length === 1,
+    selfTeam: selfPlayers,
+    enemyTeam: enemyPlayers,
+  };
+};
+
+// 请求最近一场对局
+const fetchLastGame = async (profileId: string): Promise<any | null> => {
+  const endpoint = `https://aoe4world.com/api/v0/players/${profileId}/games/last?include_stats=true`;
+  const response = await fetch(endpoint);
+  if (!response.ok) {
+    return null;
+  }
+  return response.json();
+};
+
+// 调度自动重试刷新
+const scheduleRetryRefresh = () => {
+  if (retryTimer.value !== null || !autoRefreshState.value.inGame || autoRefreshState.value.retryCount >= 5) {
+    return;
+  }
+  retryTimer.value = window.setTimeout(async () => {
+    retryTimer.value = null;
+    autoRefreshState.value.retryCount += 1;
+    await refreshMatchInfo();
+    if (autoRefreshState.value.inGame && (!matchView.value || !matchView.value.ongoing)) {
+      scheduleRetryRefresh();
     }
-    const data = await response.json();
-    return {
-      profileId,
-      name: data?.name ?? data?.steam_name,
-      rating: data?.rating ?? data?.leaderboards?.[0]?.rating,
-      winRate: data?.win_rate ?? data?.leaderboards?.[0]?.win_rate,
-      rank: data?.rank ?? data?.leaderboards?.[0]?.rank,
-    };
+  }, 8000);
+};
+
+// 刷新对局数据（手动与自动共用）
+const refreshMatchInfo = async () => {
+  if (!config.value || isRefreshingMatch.value) {
+    return;
+  }
+  const profileId = config.value.players.self.profileId?.trim();
+  if (!profileId) {
+    matchView.value = null;
+    matchNotice.value = "请先在设置中填写我方 profileId。";
+    return;
+  }
+  isRefreshingMatch.value = true;
+  try {
+    const lastGame = await fetchLastGame(profileId);
+    if (!lastGame) {
+      matchView.value = null;
+      matchNotice.value = "未获取到有效对局信息，请稍后重试。";
+      return;
+    }
+    const parsed = buildMatchView(lastGame, profileId);
+    if (!parsed) {
+      matchView.value = null;
+      matchNotice.value = String(lastGame?.kind ?? "").includes("ffa")
+        ? "FFA 模式暂不展示双方阵容信息。"
+        : "未识别到可展示的双方队伍信息。";
+      return;
+    }
+    matchView.value = parsed;
+    matchNotice.value = parsed.ongoing
+      ? `当前模式：${parsed.modeLabel}（对局进行中）`
+      : `当前模式：${parsed.modeLabel}（最近一场已结束）`;
+    if (parsed.ongoing) {
+      autoRefreshState.value.retryCount = 0;
+      clearRetryTimer();
+    } else if (autoRefreshState.value.inGame) {
+      scheduleRetryRefresh();
+    }
   } catch {
-    return { profileId };
+    matchView.value = null;
+    matchNotice.value = "拉取 AoE4World 失败，请检查网络后重试。";
+  } finally {
+    isRefreshingMatch.value = false;
   }
 };
 
@@ -190,12 +338,53 @@ const bindBackendEvents = () => {
   unsubscribers = [offStatus, offData, offAlert, offConfig];
 };
 
+// 根据识别计时器自动判定开局并触发刷新
+watch(
+  () => recognitionData.value?.timer?.value,
+  (timerText) => {
+    const timerSeconds = parseTimerSeconds(timerText);
+    if (timerSeconds === null) {
+      autoRefreshState.value.inGame = false;
+      autoRefreshState.value.lastTimerSeconds = -1;
+      autoRefreshState.value.retryCount = 0;
+      clearRetryTimer();
+      return;
+    }
+    if (!autoRefreshState.value.inGame) {
+      autoRefreshState.value.inGame = true;
+      autoRefreshState.value.retryCount = 0;
+      void refreshMatchInfo();
+    } else if (
+      autoRefreshState.value.lastTimerSeconds >= 0 &&
+      timerSeconds + 90 < autoRefreshState.value.lastTimerSeconds
+    ) {
+      autoRefreshState.value.retryCount = 0;
+      void refreshMatchInfo();
+    }
+    autoRefreshState.value.lastTimerSeconds = timerSeconds;
+    if (!matchView.value || !matchView.value.ongoing) {
+      scheduleRetryRefresh();
+    }
+  }
+);
+
+// 锁定后自动隐藏帮助面板
+watch(
+  () => locked.value,
+  (isLocked) => {
+    if (isLocked) {
+      showHelp.value = false;
+    }
+  }
+);
+
 onMounted(async () => {
   await init();
   bindBackendEvents();
 });
 
 onBeforeUnmount(() => {
+  clearRetryTimer();
   unsubscribers.forEach((fn) => fn());
   unsubscribers = [];
 });
@@ -205,16 +394,19 @@ onBeforeUnmount(() => {
   <div class="app-root" :class="{ calibrating: isCalibrating }">
     <OverlayHUD
       v-if="!isCalibrating"
-      :self-summary="selfSummary"
-      :opponent-summary="opponentSummary"
+      :match-view="matchView"
+      :match-notice="matchNotice"
       :backend-status="backendStatus"
-      :recognition-data="recognitionData"
       :last-alert="lastAlert"
       :locked="locked"
       :running="recognitionRunning"
       :on-refresh="refreshMatchInfo"
       :on-calibrate="openCalibration"
-      :on-settings="() => (showSettings = true)"
+      :on-settings="openSettingsPanel"
+      :on-lock="lockOverlay"
+      :help-visible="showHelp"
+      :help-hotkey="toggleLockHotkey"
+      :on-toggle-help="toggleHelpPanel"
       :on-start="startRecognition"
       :on-stop="stopRecognition"
     />
@@ -254,8 +446,9 @@ body {
 .app-root {
   width: 100%;
   height: 100vh;
-  background: radial-gradient(circle at 20% 20%, rgba(24, 40, 70, 0.55), transparent 55%),
-    radial-gradient(circle at 80% 0%, rgba(80, 140, 200, 0.18), transparent 50%);
+  /*background: radial-gradient(circle at 20% 20%, rgba(24, 40, 70, 0.55), transparent 55%),*/
+  /*  radial-gradient(circle at 80% 0%, rgba(80, 140, 200, 0.18), transparent 50%);*/
+  background-color: transparent;
   box-sizing: border-box;
 }
 

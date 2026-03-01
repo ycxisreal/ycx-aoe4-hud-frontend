@@ -11,7 +11,7 @@ export function createOverlayWindow() {
   const bounds = primary.bounds;
   const workArea = primary.workAreaSize;
   const width = Math.round(workArea.width * 0.35);
-  const height = Math.round(workArea.height * 0.2);
+  const height = Math.round(workArea.height * 0.18);
   const x = Math.round(bounds.x + workArea.width * 0.05);
   const y = Math.round(bounds.y);
 

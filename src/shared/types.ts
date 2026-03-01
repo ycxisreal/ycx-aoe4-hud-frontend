@@ -94,6 +94,31 @@ export type PlayerSummary = {
   rank?: string;
 };
 
+export type MatchPlayerStats = {
+  rank?: number;
+  wins?: number;
+  losses?: number;
+  winRate?: number;
+};
+
+export type MatchPlayerView = {
+  profileId: string;
+  name: string;
+  rating?: number;
+  elo?: number;
+  stats?: MatchPlayerStats;
+  isSelf?: boolean;
+};
+
+export type MatchView = {
+  kind: string;
+  modeLabel: string;
+  ongoing: boolean;
+  isSolo: boolean;
+  selfTeam: MatchPlayerView[];
+  enemyTeam: MatchPlayerView[];
+};
+
 export type BackendStatusPayload = {
   state: BackendState;
   message?: string;
