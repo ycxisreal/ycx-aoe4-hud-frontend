@@ -20,6 +20,7 @@ export type WindowApi = {
   getBackendStatus: () => Promise<BackendStatusPayload | null>;
   startCalibration: () => Promise<void>;
   stopCalibration: () => Promise<void>;
+  openExternalUrl: (url: string) => Promise<void>;
   onBackendStatus: (handler: (payload: BackendStatusPayload) => void) => Unsubscribe;
   onBackendData: (handler: (payload: BackendDataPayload) => void) => Unsubscribe;
   onBackendAlert: (handler: (payload: AlertEventPayload) => void) => Unsubscribe;

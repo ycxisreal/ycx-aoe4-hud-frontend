@@ -1,4 +1,4 @@
-import { BrowserWindow, ipcMain, screen } from "electron";
+import { BrowserWindow, ipcMain, screen, shell } from "electron";
 import { BackendClient } from "./backendWs";
 import { ConfigStore } from "./configStore";
 import { ScreenInfo } from "../../shared/types";
@@ -70,6 +70,15 @@ export function registerIpcHandlers(params: RegisterParams) {
       displayId: display.id,
     };
     return info;
+  });
+
+  // 打开外部链接（使用系统默认浏览器）
+  ipcMain.handle("external:openUrl", async (_event, rawUrl: string) => {
+    const url = new URL(rawUrl);
+    if (url.protocol !== "http:" && url.protocol !== "https:") {
+      throw new Error("Unsupported protocol");
+    }
+    await shell.openExternal(url.toString());
   });
 
   ipcMain.on("overlay:setLocked", (_event, locked) => {

@@ -29,6 +29,8 @@ const api = {
   // 标定模式
   startCalibration: () => ipcRenderer.invoke("calibration:start"),
   stopCalibration: () => ipcRenderer.invoke("calibration:stop"),
+  // 打开外部链接（系统浏览器）
+  openExternalUrl: (url: string) => ipcRenderer.invoke("external:openUrl", url) as Promise<void>,
   // 订阅后端状态
   onBackendStatus: (handler: (payload: BackendStatusPayload) => void): Unsubscribe => {
     ipcRenderer.on("backend:status", (_event, payload) => handler(payload));

@@ -10,7 +10,7 @@ export function createOverlayWindow() {
   const primary = screen.getPrimaryDisplay();
   const bounds = primary.bounds;
   const workArea = primary.workAreaSize;
-  const width = Math.round(workArea.width * 0.35);
+  const width = Math.round(workArea.width * 0.38);
   const height = Math.round(workArea.height * 0.18);
   const x = Math.round(bounds.x + workArea.width * 0.05);
   const y = Math.round(bounds.y);
