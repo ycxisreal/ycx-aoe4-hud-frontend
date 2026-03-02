@@ -18,10 +18,10 @@ export default defineConfig({
       outDir: "dist/preload",
       emptyOutDir: false,
       watch: {},
-    },
-    rollupOptions: {
-      input: {
-        index: path.join(__dirname, "src/preload/index.ts"),
+      rollupOptions: {
+        input: {
+          index: path.join(__dirname, "src/preload/index.ts"),
+        },
       },
     },
   },
