@@ -4,7 +4,7 @@
 它会在游戏画面上方显示关键信息，并和本地后端联动，帮助你在对局中更快做出判断。
 该项目以及后端项目受到以下项目的启发：
 https://github.com/aoe4world/overlay  
-https://github.com/FluffyMaguro/AoE4_Overlay
+https://github.com/FluffyMaguro/AoE4_Overlay  
 
 ## 这个项目可以用来干嘛
 
