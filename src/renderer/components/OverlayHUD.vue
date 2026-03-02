@@ -62,10 +62,18 @@ const githubUrl = "https://github.com/ycxisreal";
 const onOpenGithub = async () => {
   await window.api.openExternalUrl(githubUrl);
 };
+
+// 关闭应用（通过主进程调用 app.quit）
+const onCloseApp = async () => {
+  await window.api.closeApp();
+};
 </script>
 
 <template>
   <div class="hud-root">
+    <button type="button" class="app-close-btn" aria-label="关闭软件" title="关闭软件" @click="onCloseApp">
+      ×
+    </button>
     <div v-if="matchView" class="hud-panels">
       <div class="hud-card team-card">
         <div v-for="player in matchView.selfTeam" :key="`self-${player.profileId}`" class="team-player">
@@ -165,6 +173,39 @@ const onOpenGithub = async () => {
   gap: clamp(0.45rem, 1vw, 0.75rem);
   color: #f2f6ff;
   -webkit-app-region: no-drag;
+}
+
+.app-close-btn {
+  position: fixed;
+  top: clamp(0.52rem, 1.25vw, 0.72rem);
+  right: clamp(0.52rem, 1.25vw, 0.72rem);
+  z-index: 9999;
+  border: none;
+  background: transparent;
+  color: #ff9d9d;
+  font-size: clamp(0.88rem, 0.95vw, 0.92rem);
+  font-weight: 700;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0.05rem 0.08rem;
+}
+
+.app-close-btn:hover {
+  color: #ffd6d6;
+  text-decoration: underline;
+  text-underline-offset: 0.12rem;
+}
+
+.app-close-btn:active {
+  opacity: 0.86;
+}
+
+.app-close-btn:focus-visible {
+  outline: 1px solid rgba(255, 220, 220, 0.8);
+  outline-offset: 1px;
 }
 
 .hud-panels {
@@ -424,6 +465,13 @@ const onOpenGithub = async () => {
   color: #ffb3b3;
 }
 @media (max-width: 620px) {
+  .app-close-btn {
+    top: 0.44rem;
+    right: 0.44rem;
+    font-size: 0.8rem;
+    padding: 0.04rem 0.06rem;
+  }
+
   .hud-panels {
     grid-template-columns: minmax(0, 1.6fr) minmax(4.4rem, 0.34fr) minmax(0, 1.6fr);
     gap: 0.34rem;

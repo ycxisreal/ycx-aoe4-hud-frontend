@@ -1,4 +1,4 @@
-import { BrowserWindow, ipcMain, screen, shell } from "electron";
+import { app, BrowserWindow, ipcMain, screen, shell } from "electron";
 import { BackendClient } from "./backendWs";
 import { ConfigStore } from "./configStore";
 import { ScreenInfo } from "../../shared/types";
@@ -49,6 +49,11 @@ export function registerIpcHandlers(params: RegisterParams) {
 
   ipcMain.handle("backend:status", () => {
     return getBackendStatus?.() ?? null;
+  });
+
+  // 关闭应用（用于 HUD 顶部快速退出）
+  ipcMain.handle("app:close", () => {
+    app.quit();
   });
 
   ipcMain.handle("calibration:start", () => {

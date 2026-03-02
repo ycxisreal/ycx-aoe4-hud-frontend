@@ -26,6 +26,8 @@ const api = {
   stopRecognition: () => ipcRenderer.invoke("backend:stop"),
   reconnectBackend: () => ipcRenderer.invoke("backend:reconnect"),
   getBackendStatus: () => ipcRenderer.invoke("backend:status"),
+  // 关闭应用
+  closeApp: () => ipcRenderer.invoke("app:close") as Promise<void>,
   // 标定模式
   startCalibration: () => ipcRenderer.invoke("calibration:start"),
   stopCalibration: () => ipcRenderer.invoke("calibration:stop"),
