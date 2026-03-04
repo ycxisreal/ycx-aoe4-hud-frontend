@@ -82,9 +82,9 @@ const onCloseApp = async () => {
             <span v-if="showRating(player)" class="metric rating">{{ formatNumber(player.rating) }}</span>
             <span v-if="showElo(player)" class="metric elo">e{{ formatNumber(player.elo) }}</span>
             <span class="metric wl">
-              <span class="win">w {{ formatNumber(player.stats?.wins) }}</span
-              ><span class="sep"> / </span><span class="loss">l {{ formatNumber(player.stats?.losses) }}</span>
-              <span class="rate">{{ formatPercent(player.stats?.winRate) }}</span>
+              <span class="win">W {{ formatNumber(player.stats?.wins) }}</span
+              ><span class="sep"> / </span><span class="loss">L {{ formatNumber(player.stats?.losses) }}</span>
+              <span class="rate"> 胜率:{{ formatPercent(player.stats?.winRate) }}</span>
             </span>
           </div>
         </div>
@@ -101,9 +101,9 @@ const onCloseApp = async () => {
             <span v-if="showRating(player)" class="metric rating">{{ formatNumber(player.rating) }}</span>
             <span v-if="showElo(player)" class="metric elo">e{{ formatNumber(player.elo) }}</span>
             <span class="metric wl">
-              <span class="win">w {{ formatNumber(player.stats?.wins) }}</span
-              ><span class="sep"> / </span><span class="loss">l {{ formatNumber(player.stats?.losses) }}</span>
-              <span class="rate">{{ formatPercent(player.stats?.winRate) }}</span>
+              <span class="win">W {{ formatNumber(player.stats?.wins) }}</span
+              ><span class="sep"> / </span><span class="loss">L {{ formatNumber(player.stats?.losses) }}</span>
+              <span class="rate"> 胜率:{{ formatPercent(player.stats?.winRate) }}</span>
             </span>
           </div>
         </div>
@@ -293,6 +293,7 @@ const onCloseApp = async () => {
 }
 
 .metric.wl .win {
+  margin-left: 0.2rem;
   color: #69dd8d;
 }
 
