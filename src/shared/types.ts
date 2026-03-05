@@ -53,6 +53,13 @@ export type TtsConfig = {
 
 export type PlayerIdentity = {
   profileId: string;
+  history?: PlayerHistoryItem[];
+};
+
+export type PlayerHistoryItem = {
+  profileId: string;
+  name?: string;
+  lastUsedAt?: number;
 };
 
 export type AppConfig = {

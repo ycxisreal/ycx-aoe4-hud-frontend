@@ -10,6 +10,7 @@ import {
   BackendStatusPayload,
   MatchPlayerView,
   MatchView,
+  PlayerHistoryItem,
   RoiItem,
   ScreenInfo,
 } from "../shared/types";
@@ -187,6 +188,63 @@ const resolveModeStatsKey = (kind: string): string => {
   return kind;
 };
 
+// 规范化历史 profileId 列表（去重、裁剪空值、按最近使用时间排序）
+const normalizeProfileHistory = (history?: PlayerHistoryItem[]) => {
+  const source = Array.isArray(history) ? history : [];
+  const dedupMap = new Map<string, PlayerHistoryItem>();
+  source.forEach((item) => {
+    const profileId = String(item?.profileId ?? "").trim();
+    if (!profileId) {
+      return;
+    }
+    const prev = dedupMap.get(profileId);
+    const currentTime = typeof item?.lastUsedAt === "number" ? item.lastUsedAt : 0;
+    const prevTime = typeof prev?.lastUsedAt === "number" ? prev.lastUsedAt : 0;
+    if (!prev || currentTime >= prevTime) {
+      dedupMap.set(profileId, {
+        profileId,
+        name: String(item?.name ?? "").trim() || undefined,
+        lastUsedAt: currentTime || undefined,
+      });
+    }
+  });
+  return [...dedupMap.values()].sort((a, b) => (b.lastUsedAt ?? 0) - (a.lastUsedAt ?? 0)).slice(0, 20);
+};
+
+// 将当前 profileId 及其玩家名写回历史列表（用于设置面板快速切换）
+const persistSelfProfileHistory = async (profileId: string, playerName?: string) => {
+  if (!config.value) {
+    return;
+  }
+  const normalizedId = String(profileId ?? "").trim();
+  if (!normalizedId) {
+    return;
+  }
+  const normalizedName = String(playerName ?? "").trim();
+  const currentHistory = normalizeProfileHistory(config.value.players.self.history);
+  const currentItem = currentHistory.find((item) => item.profileId === normalizedId);
+  const needInsert = !currentItem;
+  const needRename = Boolean(normalizedName && normalizedName !== currentItem?.name);
+  if (!needInsert && !needRename) {
+    return;
+  }
+  const nextHistory = currentHistory.filter((item) => item.profileId !== normalizedId);
+  nextHistory.unshift({
+    profileId: normalizedId,
+    name: normalizedName || currentItem?.name,
+    lastUsedAt: Date.now(),
+  });
+  await applyConfigPatch({
+    players: {
+      self: {
+        ...config.value.players.self,
+        profileId: normalizedId,
+        history: normalizeProfileHistory(nextHistory),
+      },
+    },
+  });
+};
+
 // 映射单个玩家的展示数据
 const mapPlayerView = (player: any, kind: string, selfProfileId: string): MatchPlayerView => {
   const modeStatsKey = resolveModeStatsKey(kind);
@@ -338,6 +396,10 @@ const refreshMatchInfo = async () => {
       return;
     }
     matchView.value = parsed;
+    const selfPlayerName =
+      parsed.selfTeam.find((player) => player.isSelf)?.name ??
+      parsed.selfTeam.find((player) => player.profileId === profileId)?.name;
+    await persistSelfProfileHistory(profileId, selfPlayerName);
     if (parsed.ongoing) {
       autoRefreshState.value.awaitOngoingRetryCount = 0;
       const missingMetrics = hasMissingRatingOrElo(parsed);

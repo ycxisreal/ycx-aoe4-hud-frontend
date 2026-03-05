@@ -16,7 +16,7 @@ const DEFAULT_CONFIG: AppConfig = {
     toggleLock: "Alt+W",
   },
   players: {
-    self: { profileId: "" },
+    self: { profileId: "", history: [] },
   },
   backend: {
     wsUrl: "ws://127.0.0.1:8765",
