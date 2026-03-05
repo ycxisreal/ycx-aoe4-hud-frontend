@@ -1,5 +1,11 @@
 import { app, globalShortcut } from "electron";
-import { createOverlayWindow, enterCalibration, exitCalibration, setOverlayLocked } from "./windows/overlayWindow";
+import {
+  createOverlayWindow,
+  enterCalibration,
+  exitCalibration,
+  getOverlayWindow,
+  setOverlayLocked,
+} from "./windows/overlayWindow";
 import { createBackendClient } from "./services/backendWs";
 import { initConfigStore } from "./services/configStore";
 import { registerIpcHandlers } from "./services/ipcBridge";
@@ -91,7 +97,27 @@ const bootstrap = () => {
   });
 };
 
-app.whenReady().then(bootstrap);
+// 处理二次启动：不重复创建窗口，激活已存在窗口
+const onSecondInstance = () => {
+  const window = getOverlayWindow();
+  if (!window) {
+    return;
+  }
+  if (window.isMinimized()) {
+    window.restore();
+  }
+  window.showInactive();
+  window.moveTop();
+};
+
+// 应用级单实例锁：避免同版本或旧版本并行启动多个窗口
+const gotTheLock = app.requestSingleInstanceLock();
+if (!gotTheLock) {
+  app.quit();
+} else {
+  app.on("second-instance", onSecondInstance);
+  app.whenReady().then(bootstrap);
+}
 
 app.on("window-all-closed", () => {
   if (process.platform !== "darwin") {
