@@ -46,6 +46,7 @@ const autoRefreshState = ref({
 const calibrationSteps: CalibrationStep[] = [
   { id: "timer", name: "计时器", kind: "timer" },
   { id: "idle", name: "空闲村民", kind: "idle" },
+  { id: "population", name: "人口", kind: "population" },
   { id: "res_food", name: "食物资源", kind: "res_food" },
   { id: "res_wood", name: "木材资源", kind: "res_wood" },
   { id: "res_gold", name: "黄金资源", kind: "res_gold" },

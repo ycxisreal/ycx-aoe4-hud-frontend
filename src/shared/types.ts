@@ -3,6 +3,7 @@ export type BackendState = "starting" | "ready" | "running" | "stopped" | "error
 export type RoiKind =
   | "timer"
   | "idle"
+  | "population"
   | "res_food"
   | "res_wood"
   | "res_gold"
@@ -135,6 +136,7 @@ export type BackendDataPayload = {
   fields: {
     timer?: { value: string; conf: number };
     idleVillagers?: { value: number; conf: number };
+    population?: { value: number; conf: number };
     resources?: {
       food?: { value: number; conf: number };
       wood?: { value: number; conf: number };
