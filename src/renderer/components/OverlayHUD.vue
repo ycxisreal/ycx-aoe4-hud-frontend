@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, ref } from "vue";
 import {
   BackendStatusPayload,
   AlertEventPayload,
@@ -32,6 +32,20 @@ const formatNumber = (value?: number) => {
   }
   return Number.isFinite(value) ? value.toString() : "--";
 };
+// 格式化对局场次（高于1000显示为k，不保留小数）
+const formatMatchCount = (value?: number) => {
+  if (value === undefined || value === null) {
+    return "--";
+  }
+  if (!Number.isFinite(value)) {
+    return "--";
+  }
+  if (value <= 1000) {
+    return value.toString();
+  }
+  const inK = Math.floor(value / 1000);
+  return `${inK}k`;
+};
 
 // 格式化胜率字段
 const formatPercent = (value?: number) => {
@@ -49,14 +63,20 @@ const showElo = (player: MatchPlayerView) => {
   if (player.elo === undefined || player.elo === null) {
     return false;
   }
-  if (props.matchView?.isSolo && showRating(player)) {
-    return false;
-  }
-  return true;
+  return !(props.matchView?.isSolo && showRating(player));
 };
 
 const statusText = computed(() => props.backendStatus.message ?? props.backendStatus.state);
 const githubUrl = "https://github.com/ycxisreal";
+const isCollapsed = ref(false);
+
+// 切换信息区收起/展开状态
+const toggleCollapse = () => {
+  if (!isCollapsed.value && props.helpVisible) {
+    props.onToggleHelp();
+  }
+  isCollapsed.value = !isCollapsed.value;
+};
 
 // 打开 GitHub 外链（通过主进程调用系统浏览器）
 const onOpenGithub = async () => {
@@ -70,11 +90,11 @@ const onCloseApp = async () => {
 </script>
 
 <template>
-  <div class="hud-root">
+  <div class="hud-root" :class="{ 'editable-bg': !locked }">
     <button type="button" class="app-close-btn" aria-label="关闭软件" title="关闭软件" @click="onCloseApp">
       ×
     </button>
-    <div v-if="matchView" class="hud-panels">
+    <div v-if="!isCollapsed && matchView" class="hud-panels">
       <div class="hud-card team-card">
         <div v-for="player in matchView.selfTeam" :key="`self-${player.profileId}`" class="team-player">
           <div class="hud-row compact-row">
@@ -82,8 +102,8 @@ const onCloseApp = async () => {
             <span v-if="showRating(player)" class="metric rating">{{ formatNumber(player.rating) }}</span>
             <span v-if="showElo(player)" class="metric elo">e{{ formatNumber(player.elo) }}</span>
             <span class="metric wl">
-              <span class="win">W {{ formatNumber(player.stats?.wins) }}</span
-              ><span class="sep"> / </span><span class="loss">L {{ formatNumber(player.stats?.losses) }}</span>
+              <span class="win">W {{ formatMatchCount(player.stats?.wins) }}</span
+              ><span class="sep"> / </span><span class="loss">L {{ formatMatchCount(player.stats?.losses) }}</span>
               <span class="rate"> 胜率:{{ formatPercent(player.stats?.winRate) }}</span>
             </span>
           </div>
@@ -101,20 +121,20 @@ const onCloseApp = async () => {
             <span v-if="showRating(player)" class="metric rating">{{ formatNumber(player.rating) }}</span>
             <span v-if="showElo(player)" class="metric elo">e{{ formatNumber(player.elo) }}</span>
             <span class="metric wl">
-              <span class="win">W {{ formatNumber(player.stats?.wins) }}</span
-              ><span class="sep"> / </span><span class="loss">L {{ formatNumber(player.stats?.losses) }}</span>
+              <span class="win">W {{ formatMatchCount(player.stats?.wins) }}</span
+              ><span class="sep"> / </span><span class="loss">L {{ formatMatchCount(player.stats?.losses) }}</span>
               <span class="rate"> 胜率:{{ formatPercent(player.stats?.winRate) }}</span>
             </span>
           </div>
         </div>
       </div>
     </div>
-    <div v-else class="hud-empty">
+    <div v-else-if="!isCollapsed" class="hud-empty">
       {{ matchNotice }}
     </div>
-    <div class="hud-status">
-      <span>状态：{{ statusText }}</span>
-      <span class="lock-info">
+    <div class="hud-status" :class="{ collapsed: isCollapsed }">
+      <span v-if="!isCollapsed">状态：{{ statusText }}</span>
+      <span v-if="!isCollapsed" class="lock-info">
         锁定(<span class="lock-key">Alt + w</span> 切换锁定状态)：{{ locked ? "已锁定" : "编辑中" }}
         <button
           v-if="!locked"
@@ -126,8 +146,16 @@ const onCloseApp = async () => {
           ?
         </button>
       </span>
-      <span v-if="lastAlert" class="hud-alert">{{ lastAlert.text }}</span>
+      <span v-if="!isCollapsed && lastAlert" class="hud-alert">{{ lastAlert.text }}</span>
       <div class="hud-actions">
+        <button
+          type="button"
+          :aria-label="isCollapsed ? '展开信息区域' : '收起信息区域'"
+          :title="isCollapsed ? '展开信息区域' : '收起信息区域'"
+          @click="toggleCollapse"
+        >
+          {{ isCollapsed ? "展开" : "收起" }}
+        </button>
         <button type="button" aria-label="刷新对局" @click="onRefresh">
           <span class="icon refresh" aria-hidden="true">🔄</span>
         </button>
@@ -149,7 +177,7 @@ const onCloseApp = async () => {
         </button>
       </div>
     </div>
-    <div v-if="!locked && helpVisible" class="help-panel">
+    <div v-if="!isCollapsed && !locked && helpVisible" class="help-panel">
       <div class="help-title">功能说明</div>
       <div class="help-line">🔄：手动刷新对局信息</div>
       <div class="help-line">🎯 标定：进入标定向导并标定ocr识别区域</div>
@@ -172,7 +200,16 @@ const onCloseApp = async () => {
   display: grid;
   gap: clamp(0.45rem, 1vw, 0.75rem);
   color: #f2f6ff;
+  border-radius: clamp(0.55rem, 1.2vw, 0.9rem);
+  transition: background 0.18s ease;
   -webkit-app-region: no-drag;
+}
+
+.hud-root.editable-bg {
+  background:
+    radial-gradient(circle at 20% 20%, rgba(24, 40, 70, 0.62), transparent 60%),
+    radial-gradient(circle at 80% 0%, rgba(80, 140, 200, 0.22), transparent 55%),
+    rgba(8, 14, 24, 0.38);
 }
 
 .app-close-btn {
@@ -320,6 +357,14 @@ const onCloseApp = async () => {
   border-radius: clamp(0.45rem, 1vw, 0.65rem);
   padding: clamp(0.3rem, 0.7vw, 0.5rem) clamp(0.45rem, 1vw, 0.7rem);
   font-size: clamp(0.62rem, 1.02vw, 0.76rem);
+}
+
+.hud-status.collapsed {
+  justify-content: flex-end;
+}
+
+.hud-status.collapsed .hud-actions {
+  margin-left: 0;
 }
 
 .hud-actions {
