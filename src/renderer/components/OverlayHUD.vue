@@ -123,7 +123,7 @@ const onCloseApp = async () => {
             <span class="metric wl">
               <span class="win">W {{ formatMatchCount(player.stats?.wins) }}</span
               ><span class="sep"> / </span><span class="loss">L {{ formatMatchCount(player.stats?.losses) }}</span>
-              <span class="rate"> 胜率:{{ formatPercent(player.stats?.winRate) }}</span>
+              <span class="rate"> <span class="win-rate">胜率:</span>{{ formatPercent(player.stats?.winRate) }}</span>
             </span>
           </div>
         </div>
@@ -511,6 +511,9 @@ const onCloseApp = async () => {
   color: #ffb3b3;
 }
 @media (max-width: 620px) {
+  .win-rate {
+    display: none;
+  }
   .app-close-btn {
     top: 0.44rem;
     right: 0.44rem;
