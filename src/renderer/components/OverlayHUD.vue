@@ -1,4 +1,4 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 import { computed, ref } from "vue";
 import {
   BackendStatusPayload,
@@ -253,6 +253,7 @@ const onCloseApp = async () => {
 
 .team-card {
   min-height: clamp(5rem, 10vw, 8rem);
+  overflow: hidden;
 }
 
 .mode-card {
@@ -292,6 +293,7 @@ const onCloseApp = async () => {
   margin: 0;
   font-weight: 700;
   display: inline-block;
+  flex: 0 1 auto;
   min-width: 0;
   max-width: clamp(4.5rem, 2vw, 5.5rem);
   overflow: hidden;
@@ -312,13 +314,23 @@ const onCloseApp = async () => {
 .compact-row {
   display: flex;
   align-items: center;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: clamp(0.22rem, 0.48vw, 0.4rem);
   min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
 }
 
 .metric {
   white-space: nowrap;
+  flex: 0 0 auto;
+}
+
+.metric.wl {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .metric.rating {
@@ -586,3 +598,4 @@ const onCloseApp = async () => {
   }
 }
 </style>
+

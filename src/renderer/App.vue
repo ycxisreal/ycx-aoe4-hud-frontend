@@ -1,4 +1,4 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import CalibrationWizard, { CalibrationStep } from "./components/CalibrationWizard.vue";
 import OverlayHUD from "./components/OverlayHUD.vue";
@@ -595,6 +595,7 @@ html,
 body {
   margin: 0;
   background: transparent;
+  overflow: hidden;
   overflow-x: hidden;
 }
 
@@ -606,6 +607,7 @@ body {
   /*  radial-gradient(circle at 80% 0%, rgba(80, 140, 200, 0.18), transparent 50%);*/
   background-color: transparent;
   box-sizing: border-box;
+  overflow: hidden;
 }
 
 .app-root {
@@ -620,3 +622,5 @@ body {
 }
 
 </style>
+
+
