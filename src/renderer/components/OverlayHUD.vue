@@ -750,7 +750,7 @@ const onCloseApp = async () => {
   color: #ffb3b3;
 }
 
-@media (max-width: 760px) {
+@media (max-width: 680px) {
   .hud-panels.solo-layout {
     grid-template-columns: minmax(0, 1fr);
     gap: 0.34rem;
