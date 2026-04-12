@@ -1,4 +1,4 @@
-﻿<script setup lang="ts">
+<script setup lang="ts">
 import { computed, ref } from "vue";
 import {
   BackendStatusPayload,
@@ -6,6 +6,36 @@ import {
   MatchPlayerView,
   MatchView,
 } from "../../shared/types";
+
+const soloRankIconModules = import.meta.glob("../../assets/icons/solo/*.svg", {
+  eager: true,
+  import: "default",
+}) as Record<string, string>;
+
+const soloRankIconMap = Object.fromEntries(
+  Object.entries(soloRankIconModules).map(([path, url]) => [path.split("/").pop() ?? path, url])
+);
+
+const SOLO_RANK_LEVELS = [
+  { key: "bronze_1", label: "青铜1", minScore: 0, color: "#b98255" },
+  { key: "bronze_2", label: "青铜2", minScore: 400, color: "#c48c5d" },
+  { key: "bronze_3", label: "青铜3", minScore: 450, color: "#d49a67" },
+  { key: "silver_1", label: "白银1", minScore: 500, color: "#c3ced9" },
+  { key: "silver_2", label: "白银2", minScore: 600, color: "#d3dde8" },
+  { key: "silver_3", label: "白银3", minScore: 650, color: "#e0e9f4" },
+  { key: "gold_1", label: "黄金1", minScore: 700, color: "#e7c55a" },
+  { key: "gold_2", label: "黄金2", minScore: 800, color: "#f0d36d" },
+  { key: "gold_3", label: "黄金3", minScore: 900, color: "#f6dd82" },
+  { key: "platinum_1", label: "白金1", minScore: 1000, color: "#67d0c8" },
+  { key: "platinum_2", label: "白金2", minScore: 1100, color: "#78ddd4" },
+  { key: "platinum_3", label: "白金3", minScore: 1150, color: "#8de8df" },
+  { key: "diamond_1", label: "钻石1", minScore: 1200, color: "#6cb4ff" },
+  { key: "diamond_2", label: "钻石2", minScore: 1300, color: "#84c1ff" },
+  { key: "diamond_3", label: "钻石3", minScore: 1350, color: "#9bd0ff" },
+  { key: "conqueror_1", label: "征服者1", minScore: 1400, color: "#ff8f7d" },
+  { key: "conqueror_2", label: "征服者2", minScore: 1500, color: "#ff7669" },
+  { key: "conqueror_3", label: "征服者3", minScore: 1600, color: "#ff5f57" },
+] as const;
 
 const props = defineProps<{
   matchView: MatchView | null;
@@ -32,6 +62,7 @@ const formatNumber = (value?: number) => {
   }
   return Number.isFinite(value) ? value.toString() : "--";
 };
+
 // 格式化对局场次（高于1000显示为k，不保留小数）
 const formatMatchCount = (value?: number) => {
   if (value === undefined || value === null) {
@@ -63,6 +94,51 @@ const showElo = (player: MatchPlayerView) => {
   return player.elo !== undefined && player.elo !== null;
 };
 
+// 是否使用 RM_1V1 专属展示布局
+const isRankedSoloView = computed(() => props.matchView?.kind === "RM_1V1");
+
+// 根据分数解析单排段位元数据（名称、颜色、图标 key）
+const resolveSoloRankMeta = (score?: number) => {
+  if (score === undefined || score === null || !Number.isFinite(score)) {
+    return null;
+  }
+  let current = SOLO_RANK_LEVELS[0];
+  for (const item of SOLO_RANK_LEVELS) {
+    if (score >= item.minScore) {
+      current = item;
+    } else {
+      break;
+    }
+  }
+  return current;
+};
+
+// 获取当前分数对应的段位颜色样式
+const getSoloRankColorStyle = (score?: number) => {
+  const rankMeta = resolveSoloRankMeta(score);
+  if (!rankMeta) {
+    return undefined;
+  }
+  return {
+    color: rankMeta.color,
+  };
+};
+
+// 获取当前分数对应的单排图标资源
+const getSoloRankIcon = (score?: number) => {
+  const rankMeta = resolveSoloRankMeta(score);
+  if (!rankMeta) {
+    return undefined;
+  }
+  return soloRankIconMap[`solo_${rankMeta.key}.svg`];
+};
+
+// 获取历史最高分的中文段位文案
+const formatSoloMaxRankLabel = (score?: number) => {
+  const rankMeta = resolveSoloRankMeta(score);
+  return rankMeta ? `max:${rankMeta.label}` : "max:--";
+};
+
 const statusText = computed(() => props.backendStatus.message ?? props.backendStatus.state);
 const githubUrl = "https://github.com/ycxisreal";
 const isCollapsed = ref(false);
@@ -91,10 +167,42 @@ const onCloseApp = async () => {
     <button type="button" class="app-close-btn" aria-label="关闭软件" title="关闭软件" @click="onCloseApp">
       ×
     </button>
-    <div v-if="!isCollapsed && matchView" class="hud-panels">
-      <div class="hud-card team-card">
+    <div v-if="!isCollapsed && matchView" class="hud-panels" :class="{ 'solo-layout': isRankedSoloView }">
+      <div class="hud-card team-card" :class="{ 'solo-team-card': isRankedSoloView }">
         <div v-for="player in matchView.selfTeam" :key="`self-${player.profileId}`" class="team-player">
-          <div class="hud-row compact-row">
+          <template v-if="isRankedSoloView">
+            <div class="solo-player-card">
+              <div class="solo-row solo-row-top">
+                <span class="hud-name solo-name" :class="{ self: player.isSelf }">{{ player.name || player.profileId }}</span>
+                <span class="metric wl solo-wl">
+                  <span class="win">W {{ formatMatchCount(player.stats?.wins) }}</span
+                  ><span class="sep"> / </span><span class="loss">L {{ formatMatchCount(player.stats?.losses) }}</span>
+                  <span class="rate"> 胜率:{{ formatPercent(player.stats?.winRate) }}</span>
+                </span>
+              </div>
+              <div class="solo-row solo-row-middle">
+                <div class="solo-rank-values">
+                  <span v-if="showRating(player)" class="metric solo-rank-score" :style="getSoloRankColorStyle(player.rating)">
+                    {{ formatNumber(player.rating) }}
+                  </span>
+                  <span v-if="showElo(player)" class="metric solo-rank-elo">e{{ formatNumber(player.elo) }}</span>
+                </div>
+                <img
+                  v-if="getSoloRankIcon(player.rating)"
+                  class="solo-rank-icon"
+                  :src="getSoloRankIcon(player.rating)"
+                  alt="当前段位图标"
+                />
+              </div>
+              <div class="solo-row solo-row-bottom">
+                <span class="solo-max-score" :style="getSoloRankColorStyle(player.maxRating)">
+                  max {{ formatNumber(player.maxRating) }}
+                </span>
+                <span class="solo-max-rank">{{ formatSoloMaxRankLabel(player.maxRating) }}</span>
+              </div>
+            </div>
+          </template>
+          <div v-else class="hud-row compact-row">
             <span class="hud-name" :class="{ self: player.isSelf }">{{ player.name || player.profileId }}</span>
             <span v-if="showRating(player)" class="metric rating">{{ formatNumber(player.rating) }}</span>
             <span v-if="showElo(player)" class="metric elo">e{{ formatNumber(player.elo) }}</span>
@@ -106,14 +214,46 @@ const onCloseApp = async () => {
           </div>
         </div>
       </div>
-      <div class="mode-card">
+      <div class="mode-card" :class="{ 'solo-mode-card': isRankedSoloView }">
         <div class="hud-title">当前模式</div>
         <div class="mode-kind">{{ matchView.modeLabel }}</div>
         <div class="hud-row">{{ matchView.ongoing ? "对局进行中" : "最近一场已结束" }}</div>
       </div>
-      <div class="hud-card team-card">
+      <div class="hud-card team-card" :class="{ 'solo-team-card': isRankedSoloView }">
         <div v-for="player in matchView.enemyTeam" :key="`enemy-${player.profileId}`" class="team-player">
-          <div class="hud-row compact-row">
+          <template v-if="isRankedSoloView">
+            <div class="solo-player-card">
+              <div class="solo-row solo-row-top">
+                <span class="hud-name solo-name">{{ player.name || player.profileId }}</span>
+                <span class="metric wl solo-wl">
+                  <span class="win">W {{ formatMatchCount(player.stats?.wins) }}</span
+                  ><span class="sep"> / </span><span class="loss">L {{ formatMatchCount(player.stats?.losses) }}</span>
+                  <span class="rate"> <span class="win-rate">胜率:</span>{{ formatPercent(player.stats?.winRate) }}</span>
+                </span>
+              </div>
+              <div class="solo-row solo-row-middle">
+                <div class="solo-rank-values">
+                  <span v-if="showRating(player)" class="metric solo-rank-score" :style="getSoloRankColorStyle(player.rating)">
+                    {{ formatNumber(player.rating) }}
+                  </span>
+                  <span v-if="showElo(player)" class="metric solo-rank-elo">e{{ formatNumber(player.elo) }}</span>
+                </div>
+                <img
+                  v-if="getSoloRankIcon(player.rating)"
+                  class="solo-rank-icon"
+                  :src="getSoloRankIcon(player.rating)"
+                  alt="当前段位图标"
+                />
+              </div>
+              <div class="solo-row solo-row-bottom">
+                <span class="solo-max-score" :style="getSoloRankColorStyle(player.maxRating)">
+                  max {{ formatNumber(player.maxRating) }}
+                </span>
+                <span class="solo-max-rank">{{ formatSoloMaxRankLabel(player.maxRating) }}</span>
+              </div>
+            </div>
+          </template>
+          <div v-else class="hud-row compact-row">
             <span class="hud-name">{{ player.name || player.profileId }}</span>
             <span v-if="showRating(player)" class="metric rating">{{ formatNumber(player.rating) }}</span>
             <span v-if="showElo(player)" class="metric elo">e{{ formatNumber(player.elo) }}</span>
@@ -248,9 +388,18 @@ const onCloseApp = async () => {
   gap: clamp(0.45rem, 1vw, 0.8rem);
 }
 
+.hud-panels.solo-layout {
+  grid-template-columns: minmax(0, 1.45fr) minmax(6rem, 0.52fr) minmax(0, 1.45fr);
+  align-items: stretch;
+}
+
 .team-card {
   min-height: clamp(5rem, 10vw, 8rem);
   overflow: hidden;
+}
+
+.solo-team-card {
+  min-height: clamp(6.2rem, 12vw, 9rem);
 }
 
 .mode-card {
@@ -261,6 +410,10 @@ const onCloseApp = async () => {
   padding: clamp(0.2rem, 0.55vw, 0.45rem) clamp(0.35rem, 0.8vw, 0.7rem);
   border: none;
   background: transparent;
+}
+
+.solo-mode-card {
+  gap: clamp(0.18rem, 0.45vw, 0.3rem);
 }
 
 .mode-kind {
@@ -303,6 +456,10 @@ const onCloseApp = async () => {
   color: #ffe08d;
 }
 
+.solo-name {
+  max-width: none;
+}
+
 .hud-row {
   font-size: clamp(0.76rem, 1.25vw, 0.94rem);
   color: rgba(240, 245, 255, 0.8);
@@ -316,6 +473,80 @@ const onCloseApp = async () => {
   min-width: 0;
   overflow: hidden;
   white-space: nowrap;
+}
+
+.solo-player-card {
+  display: grid;
+  gap: clamp(0.22rem, 0.55vw, 0.4rem);
+  min-width: 0;
+}
+
+.solo-row {
+  display: flex;
+  align-items: center;
+  gap: clamp(0.26rem, 0.55vw, 0.42rem);
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.solo-row-top {
+  justify-content: space-between;
+}
+
+.solo-row-middle {
+  justify-content: space-between;
+  align-items: center;
+}
+
+.solo-row-bottom {
+  justify-content: space-between;
+  font-size: clamp(0.62rem, 1vw, 0.76rem);
+  color: rgba(214, 226, 245, 0.88);
+}
+
+.solo-rank-values {
+  display: inline-flex;
+  align-items: baseline;
+  gap: clamp(0.28rem, 0.6vw, 0.46rem);
+  min-width: 0;
+}
+
+.solo-rank-score {
+  font-size: clamp(1rem, 1.6vw, 1.2rem);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.solo-rank-elo {
+  font-size: clamp(0.78rem, 1.15vw, 0.9rem);
+  color: #7fd0ff;
+}
+
+.solo-rank-icon {
+  width: clamp(1.7rem, 3vw, 2.25rem);
+  height: clamp(1.7rem, 3vw, 2.25rem);
+  object-fit: contain;
+  flex: 0 0 auto;
+  filter: drop-shadow(0 0 0.3rem rgba(70, 145, 255, 0.2));
+}
+
+.solo-max-score {
+  font-weight: 700;
+}
+
+.solo-max-rank {
+  color: rgba(224, 234, 249, 0.86);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.solo-wl {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: right;
 }
 
 .metric {
@@ -515,14 +746,51 @@ const onCloseApp = async () => {
     transform: scale(1);
   }
 }
+
 .lock-key {
   font-weight: 700;
   color: #ffb3b3;
 }
+
+@media (max-width: 760px) {
+  .hud-panels.solo-layout {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.34rem;
+  }
+
+  .solo-mode-card {
+    order: -1;
+    padding: 0.18rem 0.24rem;
+  }
+
+  .solo-row-top,
+  .solo-row-middle,
+  .solo-row-bottom {
+    gap: 0.2rem;
+  }
+
+  .solo-rank-score {
+    font-size: 0.9rem;
+  }
+
+  .solo-rank-elo,
+  .solo-max-score,
+  .solo-max-rank,
+  .solo-wl {
+    font-size: 0.62rem;
+  }
+
+  .solo-rank-icon {
+    width: 1.45rem;
+    height: 1.45rem;
+  }
+}
+
 @media (max-width: 620px) {
   .win-rate {
     display: none;
   }
+
   .app-close-btn {
     top: 0.44rem;
     right: 0.44rem;
@@ -562,12 +830,36 @@ const onCloseApp = async () => {
     max-width: 4.1rem;
   }
 
+  .solo-name {
+    max-width: none;
+  }
+
   .hud-row {
     font-size: 0.6rem;
   }
 
   .metric {
     font-size: 0.58rem;
+  }
+
+  .solo-player-card {
+    gap: 0.18rem;
+  }
+
+  .solo-rank-score {
+    font-size: 0.82rem;
+  }
+
+  .solo-rank-elo,
+  .solo-max-score,
+  .solo-max-rank,
+  .solo-wl {
+    font-size: 0.56rem;
+  }
+
+  .solo-rank-icon {
+    width: 1.28rem;
+    height: 1.28rem;
   }
 
   .help-panel {
@@ -595,6 +887,3 @@ const onCloseApp = async () => {
   }
 }
 </style>
-
-
-
