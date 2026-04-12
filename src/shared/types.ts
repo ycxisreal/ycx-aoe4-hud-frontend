@@ -114,6 +114,8 @@ export type MatchPlayerView = {
   name: string;
   rating?: number;
   elo?: number;
+  maxRating?: number;
+  rankLevel?: string;
   stats?: MatchPlayerStats;
   isSelf?: boolean;
 };

@@ -1,4 +1,4 @@
-﻿<script setup lang="ts">
+<script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import CalibrationWizard, { CalibrationStep } from "./components/CalibrationWizard.vue";
 import OverlayHUD from "./components/OverlayHUD.vue";
@@ -255,6 +255,8 @@ const mapPlayerView = (player: any, kind: string, selfProfileId: string): MatchP
     name: player?.name ?? String(player?.profile_id ?? "--"),
     rating: typeof player?.rating === "number" ? player.rating : undefined,
     elo: typeof player?.mmr === "number" ? player.mmr : undefined,
+    maxRating: typeof modeStats?.max_rating === "number" ? modeStats.max_rating : undefined,
+    rankLevel: typeof modeStats?.rank_level === "string" ? modeStats.rank_level : undefined,
     stats: {
       rank: typeof modeStats?.rank === "number" ? modeStats.rank : undefined,
       wins: typeof modeStats?.wins_count === "number" ? modeStats.wins_count : undefined,
@@ -622,5 +624,3 @@ body {
 }
 
 </style>
-
-
