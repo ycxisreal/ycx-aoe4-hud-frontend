@@ -750,39 +750,6 @@ const onCloseApp = async () => {
   color: #ffb3b3;
 }
 
-@media (max-width: 680px) {
-  .hud-panels.solo-layout {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 0.34rem;
-  }
-
-  .solo-mode-card {
-    order: -1;
-    padding: 0.18rem 0.24rem;
-  }
-
-  .solo-row-top,
-  .solo-row-middle,
-  .solo-row-bottom {
-    gap: 0.2rem;
-  }
-
-  .solo-rank-score {
-    font-size: 0.9rem;
-  }
-
-  .solo-rank-elo,
-  .solo-max-score,
-  .solo-max-rank,
-  .solo-wl {
-    font-size: 0.62rem;
-  }
-
-  .solo-rank-icon {
-    width: 1.45rem;
-    height: 1.45rem;
-  }
-}
 
 @media (max-width: 620px) {
   .win-rate {
