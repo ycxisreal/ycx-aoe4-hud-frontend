@@ -95,7 +95,7 @@ const showElo = (player: MatchPlayerView) => {
 };
 
 // 是否使用 RM_1V1 专属展示布局
-const isRankedSoloView = computed(() => props.matchView?.kind === "RM_1V1");
+const isRankedSoloView = computed(() => props.matchView?.kind?.toUpperCase() === "RM_1V1");
 
 // 根据分数解析单排段位元数据（名称、颜色、图标 key）
 const resolveSoloRankMeta = (score?: number) => {
