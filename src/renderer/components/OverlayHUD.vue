@@ -60,10 +60,7 @@ const showRating = (player: MatchPlayerView) => player.rating !== undefined && p
 
 // 是否展示 elo（只显示 e 前缀，不显示“elo”文字）
 const showElo = (player: MatchPlayerView) => {
-  if (player.elo === undefined || player.elo === null) {
-    return false;
-  }
-  return !(props.matchView?.isSolo && showRating(player));
+  return player.elo !== undefined && player.elo !== null;
 };
 
 const statusText = computed(() => props.backendStatus.message ?? props.backendStatus.state);
@@ -598,4 +595,6 @@ const onCloseApp = async () => {
   }
 }
 </style>
+
+
 
