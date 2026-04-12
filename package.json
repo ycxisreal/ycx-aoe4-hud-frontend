@@ -1,6 +1,6 @@
 {
   "name": "aoe4-hud",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "AoE4 overlay HUD (Electron + Vue3)",
   "main": "dist/main/index.js",
   "scripts": {
