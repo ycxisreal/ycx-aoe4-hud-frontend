@@ -168,7 +168,7 @@ const onCloseApp = async () => {
       ×
     </button>
     <div v-if="!isCollapsed && matchView" class="hud-panels" :class="{ 'solo-layout': isRankedSoloView }">
-      <div class="hud-card team-card" :class="{ 'solo-team-card': isRankedSoloView }">
+      <div class="hud-card team-card">
         <div v-for="player in matchView.selfTeam" :key="`self-${player.profileId}`" class="team-player">
           <template v-if="isRankedSoloView">
             <div class="solo-player-card">
@@ -219,7 +219,7 @@ const onCloseApp = async () => {
         <div class="mode-kind">{{ matchView.modeLabel }}</div>
         <div class="hud-row">{{ matchView.ongoing ? "对局进行中" : "最近一场已结束" }}</div>
       </div>
-      <div class="hud-card team-card" :class="{ 'solo-team-card': isRankedSoloView }">
+      <div class="hud-card team-card">
         <div v-for="player in matchView.enemyTeam" :key="`enemy-${player.profileId}`" class="team-player">
           <template v-if="isRankedSoloView">
             <div class="solo-player-card">
@@ -396,10 +396,6 @@ const onCloseApp = async () => {
 .team-card {
   min-height: clamp(5rem, 10vw, 8rem);
   overflow: hidden;
-}
-
-.solo-team-card {
-  min-height: clamp(6.2rem, 12vw, 9rem);
 }
 
 .mode-card {
@@ -765,11 +761,11 @@ const onCloseApp = async () => {
 
   .hud-panels {
     grid-template-columns: minmax(0, 1.6fr) minmax(4.4rem, 0.34fr) minmax(0, 1.6fr);
-    gap: 0.34rem;
+    gap: 0.14rem;
   }
 
   .mode-card {
-    padding: 0.12rem 0.2rem;
+    padding: 0.1rem 0.2rem;
   }
 
   .mode-kind {
@@ -787,7 +783,7 @@ const onCloseApp = async () => {
   }
 
   .hud-card {
-    padding: 0.34rem 0.42rem;
+    padding: 0.2rem 0.42rem;
   }
 
   .hud-name {
@@ -801,15 +797,15 @@ const onCloseApp = async () => {
   }
 
   .hud-row {
-    font-size: 0.6rem;
+    font-size: 0.7rem;
   }
 
   .metric {
-    font-size: 0.58rem;
+    font-size: 0.68rem;
   }
 
   .solo-player-card {
-    gap: 0.18rem;
+    gap: 0.1rem;
   }
 
   .solo-rank-score {
