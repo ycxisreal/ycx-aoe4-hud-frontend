@@ -250,12 +250,14 @@ const persistSelfProfileHistory = async (profileId: string, playerName?: string)
 const mapPlayerView = (player: any, kind: string, selfProfileId: string): MatchPlayerView => {
   const modeStatsKey = resolveModeStatsKey(kind);
   const modeStats = player?.modes?.[modeStatsKey] ?? {};
+  // RM_1V1 的历史最高分取排位分轨道 rm_solo，而不是隐藏分轨道 rm_1v1_elo
+  const soloRankStats = player?.modes?.rm_solo ?? {};
   return {
     profileId: String(player?.profile_id ?? ""),
     name: player?.name ?? String(player?.profile_id ?? "--"),
     rating: typeof player?.rating === "number" ? player.rating : undefined,
     elo: typeof player?.mmr === "number" ? player.mmr : undefined,
-    maxRating: typeof modeStats?.max_rating === "number" ? modeStats.max_rating : undefined,
+    maxRating: typeof soloRankStats?.max_rating === "number" ? soloRankStats.max_rating : undefined,
     rankLevel: typeof modeStats?.rank_level === "string" ? modeStats.rank_level : undefined,
     stats: {
       rank: typeof modeStats?.rank === "number" ? modeStats.rank : undefined,
