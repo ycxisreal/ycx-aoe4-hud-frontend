@@ -23,16 +23,16 @@ const SOLO_RANK_LEVELS = [
   { key: "silver_1", label: "白银1", minScore: 500, color: "#c3ced9" },
   { key: "silver_2", label: "白银2", minScore: 600, color: "#d3dde8" },
   { key: "silver_3", label: "白银3", minScore: 650, color: "#e0e9f4" },
-  { key: "gold_1", label: "黄金1", minScore: 700, color: "#e7c55a" },
-  { key: "gold_2", label: "黄金2", minScore: 800, color: "#f0d36d" },
-  { key: "gold_3", label: "黄金3", minScore: 900, color: "#f6dd82" },
-  { key: "platinum_1", label: "白金1", minScore: 1000, color: "#67d0c8" },
-  { key: "platinum_2", label: "白金2", minScore: 1100, color: "#78ddd4" },
-  { key: "platinum_3", label: "白金3", minScore: 1150, color: "#8de8df" },
-  { key: "diamond_1", label: "钻石1", minScore: 1200, color: "#6cb4ff" },
-  { key: "diamond_2", label: "钻石2", minScore: 1300, color: "#84c1ff" },
-  { key: "diamond_3", label: "钻石3", minScore: 1350, color: "#9bd0ff" },
-  { key: "conqueror_1", label: "征服者1", minScore: 1400, color: "#ff8f7d" },
+  { key: "gold_1", label: "黄金1", minScore: 700, color: "#f1d275" },
+  { key: "gold_2", label: "黄金2", minScore: 800, color: "#eccc5f" },
+  { key: "gold_3", label: "黄金3", minScore: 900, color: "#ffd500" },
+  { key: "platinum_1", label: "白金1", minScore: 1000, color: "#e8eded" },
+  { key: "platinum_2", label: "白金2", minScore: 1100, color: "#e6f3f1" },
+  { key: "platinum_3", label: "白金3", minScore: 1150, color: "#eef6f5" },
+  { key: "diamond_1", label: "钻石1", minScore: 1200, color: "#9bd0ff" },
+  { key: "diamond_2", label: "钻石2", minScore: 1300, color: "#6fb1f4" },
+  { key: "diamond_3", label: "钻石3", minScore: 1350, color: "#2691f8" },
+  { key: "conqueror_1", label: "征服者1", minScore: 1400, color: "#ffab7d" },
   { key: "conqueror_2", label: "征服者2", minScore: 1500, color: "#ff7669" },
   { key: "conqueror_3", label: "征服者3", minScore: 1600, color: "#ff5f57" },
 ] as const;
@@ -136,7 +136,7 @@ const getSoloRankIcon = (score?: number) => {
 // 获取历史最高分的中文段位文案
 const formatSoloMaxRankLabel = (score?: number) => {
   const rankMeta = resolveSoloRankMeta(score);
-  return rankMeta ? `max:${rankMeta.label}` : "max:--";
+  return rankMeta ? `max: ${rankMeta.label}` : "max: --";
 };
 
 const statusText = computed(() => props.backendStatus.message ?? props.backendStatus.state);
@@ -175,8 +175,8 @@ const onCloseApp = async () => {
               <div class="solo-row solo-row-top">
                 <span class="hud-name solo-name" :class="{ self: player.isSelf }">{{ player.name || player.profileId }}</span>
                 <span class="metric wl solo-wl">
-                  <span class="win">W {{ formatMatchCount(player.stats?.wins) }}</span
-                  ><span class="sep"> / </span><span class="loss">L {{ formatMatchCount(player.stats?.losses) }}</span>
+                  <span class="win">胜 {{ formatMatchCount(player.stats?.wins) }}</span
+                  ><span class="sep"> / </span><span class="loss">负 {{ formatMatchCount(player.stats?.losses) }}</span>
                   <span class="rate"> 胜率:{{ formatPercent(player.stats?.winRate) }}</span>
                 </span>
               </div>
@@ -196,7 +196,7 @@ const onCloseApp = async () => {
               </div>
               <div class="solo-row solo-row-bottom">
                 <span class="solo-max-score" :style="getSoloRankColorStyle(player.maxRating)">
-                  max {{ formatNumber(player.maxRating) }}
+                  max: {{ formatNumber(player.maxRating) }}
                 </span>
                 <span class="solo-max-rank">{{ formatSoloMaxRankLabel(player.maxRating) }}</span>
               </div>
@@ -226,8 +226,8 @@ const onCloseApp = async () => {
               <div class="solo-row solo-row-top">
                 <span class="hud-name solo-name">{{ player.name || player.profileId }}</span>
                 <span class="metric wl solo-wl">
-                  <span class="win">W {{ formatMatchCount(player.stats?.wins) }}</span
-                  ><span class="sep"> / </span><span class="loss">L {{ formatMatchCount(player.stats?.losses) }}</span>
+                  <span class="win">胜 {{ formatMatchCount(player.stats?.wins) }}</span
+                  ><span class="sep"> / </span><span class="loss">负 {{ formatMatchCount(player.stats?.losses) }}</span>
                   <span class="rate"> <span class="win-rate">胜率:</span>{{ formatPercent(player.stats?.winRate) }}</span>
                 </span>
               </div>
@@ -247,7 +247,7 @@ const onCloseApp = async () => {
               </div>
               <div class="solo-row solo-row-bottom">
                 <span class="solo-max-score" :style="getSoloRankColorStyle(player.maxRating)">
-                  max {{ formatNumber(player.maxRating) }}
+                  max: {{ formatNumber(player.maxRating) }}
                 </span>
                 <span class="solo-max-rank">{{ formatSoloMaxRankLabel(player.maxRating) }}</span>
               </div>
@@ -457,7 +457,7 @@ const onCloseApp = async () => {
 }
 
 .solo-name {
-  max-width: none;
+
 }
 
 .hud-row {
@@ -495,20 +495,18 @@ const onCloseApp = async () => {
 }
 
 .solo-row-middle {
-  justify-content: space-between;
   align-items: center;
 }
 
 .solo-row-bottom {
-  justify-content: space-between;
-  font-size: clamp(0.62rem, 1vw, 0.76rem);
+  font-size: clamp(0.82rem, 1vw, 0.76rem);
   color: rgba(214, 226, 245, 0.88);
 }
 
 .solo-rank-values {
   display: inline-flex;
   align-items: baseline;
-  gap: clamp(0.28rem, 0.6vw, 0.46rem);
+  gap: clamp(0.58rem, 0.8vw, 0.76rem);
   min-width: 0;
 }
 
@@ -831,7 +829,8 @@ const onCloseApp = async () => {
   }
 
   .solo-name {
-    max-width: none;
+    font-size: 0.8rem;
+    max-width: 4rem;
   }
 
   .hud-row {
