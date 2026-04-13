@@ -11,6 +11,7 @@ https://github.com/FluffyMaguro/AoE4_Overlay
 - 在游戏上方显示 HUD 信息，不需要频繁切屏查询如aoe4world网站
 - 展示双方对局信息（如胜率、排位分等）
 ![双方信息](docs/images/对局信息.png)  
+![单排](docs/images/单排.png)
 - 支持收起与锁定模式，不影响游戏内操作。  
 编辑模式下有背景色，锁定后变为透明。  
 ![编辑模式](docs/images/编辑未收起.png)  
