@@ -37,6 +37,8 @@ const SOLO_RANK_LEVELS = [
   { key: "conqueror_3", label: "征服者3", minScore: 1600, color: "#ff5f57" },
 ] as const;
 
+type SoloRankLevel = (typeof SOLO_RANK_LEVELS)[number];
+
 const props = defineProps<{
   matchView: MatchView | null;
   matchNotice: string;
@@ -98,11 +100,11 @@ const showElo = (player: MatchPlayerView) => {
 const isRankedSoloView = computed(() => props.matchView?.kind?.toUpperCase() === "RM_1V1");
 
 // 根据分数解析单排段位元数据（名称、颜色、图标 key）
-const resolveSoloRankMeta = (score?: number) => {
+const resolveSoloRankMeta = (score?: number): SoloRankLevel | null => {
   if (score === undefined || score === null || !Number.isFinite(score)) {
     return null;
   }
-  let current = SOLO_RANK_LEVELS[0];
+  let current: SoloRankLevel = SOLO_RANK_LEVELS[0];
   for (const item of SOLO_RANK_LEVELS) {
     if (score >= item.minScore) {
       current = item;
