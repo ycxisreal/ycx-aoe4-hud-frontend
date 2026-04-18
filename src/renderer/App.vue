@@ -65,6 +65,9 @@ const toggleLockHotkey = computed(() => config.value?.hotkeys?.toggleLock || "Al
 
 let unsubscribers: Array<() => void> = [];
 
+// 将配置对象转换为可安全跨 IPC 传输的普通对象，避免响应式代理或特殊引用导致克隆失败
+const toPlainData = <T>(value: T): T => JSON.parse(JSON.stringify(value)) as T;
+
 // 初始化数据
 const init = async () => {
   config.value = await window.api.getConfig();
@@ -148,13 +151,13 @@ const handleSettingsSave = async (next: AppConfig) => {
 
 // 实时预览设置面板中的覆盖层布局调整
 const previewOverlayLayout = async (overlay: AppConfig["overlay"]) => {
-  await window.api.previewOverlay(overlay);
+  await window.api.previewOverlay(toPlainData(overlay));
 };
 
 // 关闭设置面板时回滚未保存的覆盖层预览
 const closeSettingsPanel = async () => {
   if (settingsOverlaySnapshot.value) {
-    await window.api.resetOverlayPreview(settingsOverlaySnapshot.value);
+    await window.api.resetOverlayPreview(toPlainData(settingsOverlaySnapshot.value));
   }
   settingsOverlaySnapshot.value = null;
   showSettings.value = false;
@@ -163,7 +166,7 @@ const closeSettingsPanel = async () => {
 // 打开设置面板并收起帮助面板
 const openSettingsPanel = () => {
   showHelp.value = false;
-  settingsOverlaySnapshot.value = config.value ? JSON.parse(JSON.stringify(config.value.overlay)) : null;
+  settingsOverlaySnapshot.value = config.value ? toPlainData(config.value.overlay) : null;
   showSettings.value = true;
 };
 
