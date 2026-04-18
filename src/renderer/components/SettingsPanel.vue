@@ -276,42 +276,90 @@ onBeforeUnmount(() => {
           识别频率 (Hz)
           <input v-model.number="form.recognition.hz" type="number" min="1" max="2" />
         </label>
-        <label>
-          HUD 宽度占比 (%)
+        <div class="overlay-range-field">
+          <div class="overlay-range-head">
+            <div>
+              <div class="overlay-range-title">HUD 宽度占比</div>
+              <div class="overlay-range-caption">控制覆盖层相对屏幕宽度的占比</div>
+            </div>
+            <div class="overlay-range-value">{{ form.overlay.widthPercent }}%</div>
+          </div>
           <input
             v-model.number="form.overlay.widthPercent"
-            type="number"
+            class="overlay-range-input"
+            type="range"
             :min="OVERLAY_PERCENT_LIMITS.widthPercent.min"
             :max="OVERLAY_PERCENT_LIMITS.widthPercent.max"
+            step="1"
           />
-        </label>
-        <label>
-          HUD 高度占比 (%)
+          <div class="overlay-range-scale">
+            <span>{{ OVERLAY_PERCENT_LIMITS.widthPercent.min }}%</span>
+            <span>{{ OVERLAY_PERCENT_LIMITS.widthPercent.max }}%</span>
+          </div>
+        </div>
+        <div class="overlay-range-field">
+          <div class="overlay-range-head">
+            <div>
+              <div class="overlay-range-title">HUD 高度占比</div>
+              <div class="overlay-range-caption">控制覆盖层相对屏幕高度的占比</div>
+            </div>
+            <div class="overlay-range-value">{{ form.overlay.heightPercent }}%</div>
+          </div>
           <input
             v-model.number="form.overlay.heightPercent"
-            type="number"
+            class="overlay-range-input"
+            type="range"
             :min="OVERLAY_PERCENT_LIMITS.heightPercent.min"
             :max="OVERLAY_PERCENT_LIMITS.heightPercent.max"
+            step="1"
           />
-        </label>
-        <label>
-          左侧偏移占比 (%)
+          <div class="overlay-range-scale">
+            <span>{{ OVERLAY_PERCENT_LIMITS.heightPercent.min }}%</span>
+            <span>{{ OVERLAY_PERCENT_LIMITS.heightPercent.max }}%</span>
+          </div>
+        </div>
+        <div class="overlay-range-field">
+          <div class="overlay-range-head">
+            <div>
+              <div class="overlay-range-title">左侧偏移占比</div>
+              <div class="overlay-range-caption">控制窗口距离屏幕左边缘的偏移量</div>
+            </div>
+            <div class="overlay-range-value">{{ form.overlay.offsetXPercent }}%</div>
+          </div>
           <input
             v-model.number="form.overlay.offsetXPercent"
-            type="number"
+            class="overlay-range-input"
+            type="range"
             :min="OVERLAY_PERCENT_LIMITS.offsetXPercent.min"
             :max="OVERLAY_PERCENT_LIMITS.offsetXPercent.max"
+            step="1"
           />
-        </label>
-        <label>
-          顶部偏移占比 (%)
+          <div class="overlay-range-scale">
+            <span>{{ OVERLAY_PERCENT_LIMITS.offsetXPercent.min }}%</span>
+            <span>{{ OVERLAY_PERCENT_LIMITS.offsetXPercent.max }}%</span>
+          </div>
+        </div>
+        <div class="overlay-range-field">
+          <div class="overlay-range-head">
+            <div>
+              <div class="overlay-range-title">顶部偏移占比</div>
+              <div class="overlay-range-caption">控制窗口距离屏幕顶部的偏移量</div>
+            </div>
+            <div class="overlay-range-value">{{ form.overlay.offsetYPercent }}%</div>
+          </div>
           <input
             v-model.number="form.overlay.offsetYPercent"
-            type="number"
+            class="overlay-range-input"
+            type="range"
             :min="OVERLAY_PERCENT_LIMITS.offsetYPercent.min"
             :max="OVERLAY_PERCENT_LIMITS.offsetYPercent.max"
+            step="1"
           />
-        </label>
+          <div class="overlay-range-scale">
+            <span>{{ OVERLAY_PERCENT_LIMITS.offsetYPercent.min }}%</span>
+            <span>{{ OVERLAY_PERCENT_LIMITS.offsetYPercent.max }}%</span>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -371,6 +419,97 @@ input {
   padding: clamp(0.28rem, 0.65vw, 0.42rem) clamp(0.35rem, 0.8vw, 0.5rem);
   color: #e8f0ff;
   font-size: clamp(0.68rem, 1.1vw, 0.8rem);
+}
+
+.overlay-range-field {
+  display: grid;
+  gap: clamp(0.35rem, 0.8vw, 0.5rem);
+  padding: clamp(0.55rem, 1vw, 0.75rem);
+  border: 1px solid rgba(120, 170, 255, 0.2);
+  border-radius: clamp(0.55rem, 1vw, 0.8rem);
+  background:
+    linear-gradient(180deg, rgba(20, 28, 48, 0.88), rgba(11, 16, 28, 0.88)),
+    radial-gradient(circle at top right, rgba(92, 158, 255, 0.12), transparent 55%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+}
+
+.overlay-range-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: clamp(0.45rem, 1vw, 0.7rem);
+}
+
+.overlay-range-title {
+  font-size: clamp(0.72rem, 1.1vw, 0.84rem);
+  font-weight: 600;
+  color: rgba(236, 244, 255, 0.98);
+}
+
+.overlay-range-caption {
+  margin-top: 0.14rem;
+  font-size: clamp(0.58rem, 0.95vw, 0.68rem);
+  color: rgba(158, 188, 236, 0.8);
+  line-height: 1.4;
+}
+
+.overlay-range-value {
+  flex-shrink: 0;
+  min-width: 2.9rem;
+  padding: 0.24rem 0.46rem;
+  border: 1px solid rgba(120, 170, 255, 0.26);
+  border-radius: 999px;
+  background: rgba(39, 64, 108, 0.52);
+  color: #eef5ff;
+  text-align: center;
+  font-size: clamp(0.66rem, 1vw, 0.76rem);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.overlay-range-input {
+  appearance: none;
+  width: 100%;
+  height: 0.38rem;
+  padding: 0;
+  border: none;
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgba(69, 129, 255, 0.92), rgba(126, 198, 255, 0.88));
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+  cursor: pointer;
+}
+
+.overlay-range-input::-webkit-slider-thumb {
+  appearance: none;
+  width: 0.92rem;
+  height: 0.92rem;
+  border: 2px solid rgba(228, 240, 255, 0.96);
+  border-radius: 50%;
+  background: radial-gradient(circle at 30% 30%, #ffffff, #8ec5ff 65%, #5c84ff 100%);
+  box-shadow: 0 0.18rem 0.45rem rgba(26, 52, 96, 0.45);
+}
+
+.overlay-range-input::-moz-range-thumb {
+  width: 0.92rem;
+  height: 0.92rem;
+  border: 2px solid rgba(228, 240, 255, 0.96);
+  border-radius: 50%;
+  background: radial-gradient(circle at 30% 30%, #ffffff, #8ec5ff 65%, #5c84ff 100%);
+  box-shadow: 0 0.18rem 0.45rem rgba(26, 52, 96, 0.45);
+}
+
+.overlay-range-input::-moz-range-track {
+  height: 0.38rem;
+  border: none;
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgba(69, 129, 255, 0.92), rgba(126, 198, 255, 0.88));
+}
+
+.overlay-range-scale {
+  display: flex;
+  justify-content: space-between;
+  color: rgba(160, 188, 234, 0.72);
+  font-size: clamp(0.56rem, 0.9vw, 0.66rem);
 }
 
 .profile-input-wrap {
@@ -542,6 +681,30 @@ button.primary {
     border-radius: 0.38rem;
     padding: 0.2rem 0.32rem;
     font-size: 0.62rem;
+  }
+
+  .overlay-range-field {
+    gap: 0.32rem;
+    padding: 0.45rem 0.5rem;
+    border-radius: 0.46rem;
+  }
+
+  .overlay-range-title {
+    font-size: 0.66rem;
+  }
+
+  .overlay-range-caption {
+    font-size: 0.54rem;
+  }
+
+  .overlay-range-value {
+    min-width: 2.45rem;
+    padding: 0.18rem 0.34rem;
+    font-size: 0.58rem;
+  }
+
+  .overlay-range-input {
+    height: 0.34rem;
   }
 
   .profile-input-wrap input {
