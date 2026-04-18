@@ -287,7 +287,6 @@ onBeforeUnmount(() => {
         <div class="overlay-reset-field">
           <div class="overlay-reset-copy">
             <div class="overlay-reset-title">重置尺寸至默认值</div>
-            <div class="overlay-reset-caption">恢复为宽度 38%、高度 18%、左偏移 5%、顶偏移 0%</div>
           </div>
           <button type="button" class="overlay-reset-button" @click="resetOverlayPercentToDefault">
             重置默认布局
@@ -297,7 +296,6 @@ onBeforeUnmount(() => {
           <div class="overlay-range-head">
             <div>
               <div class="overlay-range-title">HUD 宽度占比</div>
-              <div class="overlay-range-caption">控制覆盖层相对屏幕宽度的占比</div>
             </div>
             <div class="overlay-range-value">{{ form.overlay.widthPercent }}%</div>
           </div>
@@ -319,7 +317,6 @@ onBeforeUnmount(() => {
           <div class="overlay-range-head">
             <div>
               <div class="overlay-range-title">HUD 高度占比</div>
-              <div class="overlay-range-caption">控制覆盖层相对屏幕高度的占比</div>
             </div>
             <div class="overlay-range-value">{{ form.overlay.heightPercent }}%</div>
           </div>
@@ -341,7 +338,6 @@ onBeforeUnmount(() => {
           <div class="overlay-range-head">
             <div>
               <div class="overlay-range-title">左侧偏移占比</div>
-              <div class="overlay-range-caption">控制窗口距离屏幕左边缘的偏移量</div>
             </div>
             <div class="overlay-range-value">{{ form.overlay.offsetXPercent }}%</div>
           </div>
@@ -363,7 +359,6 @@ onBeforeUnmount(() => {
           <div class="overlay-range-head">
             <div>
               <div class="overlay-range-title">顶部偏移占比</div>
-              <div class="overlay-range-caption">控制窗口距离屏幕顶部的偏移量</div>
             </div>
             <div class="overlay-range-value">{{ form.overlay.offsetYPercent }}%</div>
           </div>
@@ -459,7 +454,7 @@ input {
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
   gap: clamp(0.45rem, 1vw, 0.7rem);
-  padding: clamp(0.55rem, 1vw, 0.75rem);
+  padding: clamp(0.15rem, 0.4vw, 0.35rem);
   border: 1px solid rgba(120, 170, 255, 0.18);
   border-radius: clamp(0.55rem, 1vw, 0.8rem);
   background: linear-gradient(180deg, rgba(18, 24, 42, 0.88), rgba(10, 15, 28, 0.92));
@@ -473,13 +468,6 @@ input {
   font-size: clamp(0.72rem, 1.08vw, 0.84rem);
   font-weight: 600;
   color: rgba(236, 244, 255, 0.98);
-}
-
-.overlay-reset-caption {
-  margin-top: 0.14rem;
-  color: rgba(158, 188, 236, 0.78);
-  font-size: clamp(0.58rem, 0.95vw, 0.68rem);
-  line-height: 1.4;
 }
 
 .overlay-reset-button {
@@ -500,13 +488,6 @@ input {
   font-size: clamp(0.72rem, 1.1vw, 0.84rem);
   font-weight: 600;
   color: rgba(236, 244, 255, 0.98);
-}
-
-.overlay-range-caption {
-  margin-top: 0.14rem;
-  font-size: clamp(0.58rem, 0.95vw, 0.68rem);
-  color: rgba(158, 188, 236, 0.8);
-  line-height: 1.4;
 }
 
 .overlay-range-value {
@@ -749,16 +730,12 @@ button.primary {
     grid-template-columns: 1fr;
     align-items: stretch;
     gap: 0.34rem;
-    padding: 0.45rem 0.5rem;
+    padding: 0.15rem 0.3rem;
     border-radius: 0.46rem;
   }
 
   .overlay-reset-title {
     font-size: 0.66rem;
-  }
-
-  .overlay-reset-caption {
-    font-size: 0.54rem;
   }
 
   .overlay-reset-button {
@@ -767,10 +744,6 @@ button.primary {
 
   .overlay-range-title {
     font-size: 0.66rem;
-  }
-
-  .overlay-range-caption {
-    font-size: 0.54rem;
   }
 
   .overlay-range-value {
