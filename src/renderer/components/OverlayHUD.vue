@@ -405,9 +405,11 @@ const onCloseApp = async () => {
   align-content: center;
   justify-items: center;
   text-align: center;
+  min-width: 0;
   padding: clamp(0.2rem, 0.55vw, 0.45rem) clamp(0.35rem, 0.8vw, 0.7rem);
   border: none;
   background: transparent;
+  overflow: hidden;
 }
 
 .solo-mode-card {
@@ -419,6 +421,10 @@ const onCloseApp = async () => {
   font-size: clamp(0.75rem, 1.8vw, 1.15rem);
   font-weight: 600;
   letter-spacing: 0.05em;
+  width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .hud-card {
