@@ -23,6 +23,13 @@ const OVERLAY_PERCENT_LIMITS = {
   offsetYPercent: { min: 0, max: 60 },
 } as const;
 
+const DEFAULT_OVERLAY_PERCENT = {
+  widthPercent: 38,
+  heightPercent: 18,
+  offsetXPercent: 5,
+  offsetYPercent: 0,
+} as const;
+
 // 限制设置页中的比例数值范围，避免输入过程出现空值或越界
 const clampNumber = (value: number, min: number, max: number) => {
   if (!Number.isFinite(value)) {
@@ -56,6 +63,23 @@ const buildOverlayPreview = (): AppConfig["overlay"] => ({
   ),
 });
 
+// 在用户完成一次滑杆调节后再触发窗口预览，避免拖动过程中窗口变化打断操作
+const commitOverlayPreview = () => {
+  if (!props.open) {
+    return;
+  }
+  emit("preview", buildOverlayPreview());
+};
+
+// 一键恢复覆盖层尺寸与偏移的默认比例，并立即应用一次预览
+const resetOverlayPercentToDefault = () => {
+  form.overlay.widthPercent = DEFAULT_OVERLAY_PERCENT.widthPercent;
+  form.overlay.heightPercent = DEFAULT_OVERLAY_PERCENT.heightPercent;
+  form.overlay.offsetXPercent = DEFAULT_OVERLAY_PERCENT.offsetXPercent;
+  form.overlay.offsetYPercent = DEFAULT_OVERLAY_PERCENT.offsetYPercent;
+  commitOverlayPreview();
+};
+
 /**
  * 结构说明：
  * 1) 使用本地表单态复制全量配置，避免输入时直接污染全局状态。
@@ -70,10 +94,10 @@ const form = reactive<AppConfig>({
     scale: 1,
     layoutPreset: "default",
     locked: true,
-    widthPercent: 38,
-    heightPercent: 18,
-    offsetXPercent: 5,
-    offsetYPercent: 0,
+    widthPercent: DEFAULT_OVERLAY_PERCENT.widthPercent,
+    heightPercent: DEFAULT_OVERLAY_PERCENT.heightPercent,
+    offsetXPercent: DEFAULT_OVERLAY_PERCENT.offsetXPercent,
+    offsetYPercent: DEFAULT_OVERLAY_PERCENT.offsetYPercent,
   },
   hotkeys: {},
   players: { self: { profileId: "", history: [] } },
@@ -201,22 +225,6 @@ const handleSave = () => {
   emit("save", JSON.parse(JSON.stringify(form)) as AppConfig);
 };
 
-// 覆盖层布局字段变动后实时通知父层进行窗口预览
-watch(
-  () => [
-    form.overlay.widthPercent,
-    form.overlay.heightPercent,
-    form.overlay.offsetXPercent,
-    form.overlay.offsetYPercent,
-  ],
-  () => {
-    if (!props.open) {
-      return;
-    }
-    emit("preview", buildOverlayPreview());
-  }
-);
-
 onMounted(() => {
   document.addEventListener("mousedown", onGlobalPointerDown);
 });
@@ -276,6 +284,15 @@ onBeforeUnmount(() => {
           识别频率 (Hz)
           <input v-model.number="form.recognition.hz" type="number" min="1" max="2" />
         </label>
+        <div class="overlay-reset-field">
+          <div class="overlay-reset-copy">
+            <div class="overlay-reset-title">重置尺寸至默认值</div>
+            <div class="overlay-reset-caption">恢复为宽度 38%、高度 18%、左偏移 5%、顶偏移 0%</div>
+          </div>
+          <button type="button" class="overlay-reset-button" @click="resetOverlayPercentToDefault">
+            重置默认布局
+          </button>
+        </div>
         <div class="overlay-range-field">
           <div class="overlay-range-head">
             <div>
@@ -291,6 +308,7 @@ onBeforeUnmount(() => {
             :min="OVERLAY_PERCENT_LIMITS.widthPercent.min"
             :max="OVERLAY_PERCENT_LIMITS.widthPercent.max"
             step="1"
+            @change="commitOverlayPreview"
           />
           <div class="overlay-range-scale">
             <span>{{ OVERLAY_PERCENT_LIMITS.widthPercent.min }}%</span>
@@ -312,6 +330,7 @@ onBeforeUnmount(() => {
             :min="OVERLAY_PERCENT_LIMITS.heightPercent.min"
             :max="OVERLAY_PERCENT_LIMITS.heightPercent.max"
             step="1"
+            @change="commitOverlayPreview"
           />
           <div class="overlay-range-scale">
             <span>{{ OVERLAY_PERCENT_LIMITS.heightPercent.min }}%</span>
@@ -333,6 +352,7 @@ onBeforeUnmount(() => {
             :min="OVERLAY_PERCENT_LIMITS.offsetXPercent.min"
             :max="OVERLAY_PERCENT_LIMITS.offsetXPercent.max"
             step="1"
+            @change="commitOverlayPreview"
           />
           <div class="overlay-range-scale">
             <span>{{ OVERLAY_PERCENT_LIMITS.offsetXPercent.min }}%</span>
@@ -354,6 +374,7 @@ onBeforeUnmount(() => {
             :min="OVERLAY_PERCENT_LIMITS.offsetYPercent.min"
             :max="OVERLAY_PERCENT_LIMITS.offsetYPercent.max"
             step="1"
+            @change="commitOverlayPreview"
           />
           <div class="overlay-range-scale">
             <span>{{ OVERLAY_PERCENT_LIMITS.offsetYPercent.min }}%</span>
@@ -431,6 +452,41 @@ input {
     linear-gradient(180deg, rgba(20, 28, 48, 0.88), rgba(11, 16, 28, 0.88)),
     radial-gradient(circle at top right, rgba(92, 158, 255, 0.12), transparent 55%);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+}
+
+.overlay-reset-field {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: clamp(0.45rem, 1vw, 0.7rem);
+  padding: clamp(0.55rem, 1vw, 0.75rem);
+  border: 1px solid rgba(120, 170, 255, 0.18);
+  border-radius: clamp(0.55rem, 1vw, 0.8rem);
+  background: linear-gradient(180deg, rgba(18, 24, 42, 0.88), rgba(10, 15, 28, 0.92));
+}
+
+.overlay-reset-copy {
+  min-width: 0;
+}
+
+.overlay-reset-title {
+  font-size: clamp(0.72rem, 1.08vw, 0.84rem);
+  font-weight: 600;
+  color: rgba(236, 244, 255, 0.98);
+}
+
+.overlay-reset-caption {
+  margin-top: 0.14rem;
+  color: rgba(158, 188, 236, 0.78);
+  font-size: clamp(0.58rem, 0.95vw, 0.68rem);
+  line-height: 1.4;
+}
+
+.overlay-reset-button {
+  min-width: 6.9rem;
+  padding-inline: clamp(0.65rem, 1.2vw, 0.95rem);
+  background: linear-gradient(135deg, rgba(54, 111, 221, 0.92), rgba(37, 72, 158, 0.94));
+  border-color: rgba(141, 184, 255, 0.34);
 }
 
 .overlay-range-head {
@@ -687,6 +743,26 @@ button.primary {
     gap: 0.32rem;
     padding: 0.45rem 0.5rem;
     border-radius: 0.46rem;
+  }
+
+  .overlay-reset-field {
+    grid-template-columns: 1fr;
+    align-items: stretch;
+    gap: 0.34rem;
+    padding: 0.45rem 0.5rem;
+    border-radius: 0.46rem;
+  }
+
+  .overlay-reset-title {
+    font-size: 0.66rem;
+  }
+
+  .overlay-reset-caption {
+    font-size: 0.54rem;
+  }
+
+  .overlay-reset-button {
+    min-width: 0;
   }
 
   .overlay-range-title {
