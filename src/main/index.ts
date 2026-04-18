@@ -1,5 +1,12 @@
 import { app, globalShortcut } from "electron";
-import { createOverlayWindow, enterCalibration, exitCalibration, setOverlayLocked } from "./windows/overlayWindow";
+import {
+  applyOverlayLayout,
+  createOverlayWindow,
+  enterCalibration,
+  exitCalibration,
+  normalizeOverlayConfig,
+  setOverlayLocked,
+} from "./windows/overlayWindow";
 import { createBackendClient } from "./services/backendWs";
 import { initConfigStore } from "./services/configStore";
 import { registerIpcHandlers } from "./services/ipcBridge";
@@ -28,9 +35,20 @@ const registerShortcuts = (getConfig: () => AppConfig, applyLockState: (locked: 
 // 初始化应用
 const bootstrap = () => {
   const store = initConfigStore();
-  const window = createOverlayWindow();
+  const initialConfig = store.getConfig();
+  const window = createOverlayWindow(initialConfig.overlay);
   const backend = createBackendClient(store.getConfig);
   let latestStatus: BackendStatusPayload | null = null;
+
+  // 规范化覆盖层配置字段，确保新增比例配置在旧配置升级时立即补齐
+  const normalizeAndPersistOverlayConfig = () => {
+    const current = store.getConfig();
+    const normalizedOverlay = normalizeOverlayConfig(current.overlay);
+    const next = store.updateConfig({
+      overlay: normalizedOverlay,
+    });
+    return next;
+  };
 
   // 监听后端事件并转发给渲染进程
   const forwardStatus = (payload: BackendStatusPayload) => {
@@ -48,6 +66,9 @@ const bootstrap = () => {
   backend.on("data", forwardData);
   backend.on("alert", forwardAlert);
 
+  const normalizedConfig = normalizeAndPersistOverlayConfig();
+  applyOverlayLayout(normalizedConfig.overlay);
+
   // 初始化锁定状态
   // 根据锁定状态切换穿透
   const applyLockState = (locked: boolean) => {
@@ -58,8 +79,7 @@ const bootstrap = () => {
     window.webContents.send("config:updated", next);
   };
 
-  const config = store.getConfig();
-  applyLockState(config.overlay.locked);
+  applyLockState(normalizedConfig.overlay.locked);
   registerShortcuts(store.getConfig, applyLockState);
 
   // 配置更新后同步到后端
@@ -72,13 +92,27 @@ const bootstrap = () => {
     backend,
     store,
     onLockedChange: (locked) => applyLockState(locked),
+    onOverlayPreview: (overlay) => {
+      const currentOverlay = store.getConfig().overlay;
+      applyOverlayLayout({
+        ...currentOverlay,
+        ...(overlay as Partial<AppConfig["overlay"]>),
+      });
+    },
+    onOverlayPreviewReset: (overlay) => {
+      applyOverlayLayout(overlay as AppConfig["overlay"]);
+    },
     onCalibrationStart: () => {
       enterCalibration();
     },
     onCalibrationStop: () => {
       exitCalibration(store.getConfig().overlay.locked);
     },
-    onConfigUpdated: (next) => syncConfigToBackend(next as AppConfig),
+    onConfigUpdated: (next) => {
+      const typedConfig = next as AppConfig;
+      applyOverlayLayout(typedConfig.overlay);
+      syncConfigToBackend(typedConfig);
+    },
     getBackendStatus: () => latestStatus,
   });
 

@@ -1,19 +1,71 @@
 import path from "node:path";
 import { BrowserWindow, screen } from "electron";
+import { AppConfig } from "../../shared/types";
 
 let overlayWindow: BrowserWindow | null = null;
 let previousBounds: Electron.Rectangle | null = null;
 let calibrationActive = false;
 
-// 创建覆盖层窗口
-export function createOverlayWindow() {
+type OverlayConfig = AppConfig["overlay"];
+
+const OVERLAY_PERCENT_LIMITS = {
+  width: { min: 20, max: 80 },
+  height: { min: 10, max: 50 },
+  offsetX: { min: 0, max: 60 },
+  offsetY: { min: 0, max: 60 },
+} as const;
+
+// 将数值限制在指定范围内，避免异常配置导致窗口越界或尺寸失控
+function clampPercent(value: number, min: number, max: number) {
+  if (!Number.isFinite(value)) {
+    return min;
+  }
+  return Math.min(Math.max(value, min), max);
+}
+
+// 规范化覆盖层布局比例配置，统一处理默认值与边界限制
+export function normalizeOverlayConfig(overlay: Partial<OverlayConfig> | undefined): OverlayConfig {
+  return {
+    opacity: typeof overlay?.opacity === "number" ? overlay.opacity : 0.9,
+    scale: typeof overlay?.scale === "number" ? overlay.scale : 1,
+    layoutPreset: overlay?.layoutPreset === "default" ? "default" : "default",
+    locked: typeof overlay?.locked === "boolean" ? overlay.locked : true,
+    widthPercent: clampPercent(overlay?.widthPercent ?? 38, OVERLAY_PERCENT_LIMITS.width.min, OVERLAY_PERCENT_LIMITS.width.max),
+    heightPercent: clampPercent(
+      overlay?.heightPercent ?? 18,
+      OVERLAY_PERCENT_LIMITS.height.min,
+      OVERLAY_PERCENT_LIMITS.height.max
+    ),
+    offsetXPercent: clampPercent(
+      overlay?.offsetXPercent ?? 5,
+      OVERLAY_PERCENT_LIMITS.offsetX.min,
+      OVERLAY_PERCENT_LIMITS.offsetX.max
+    ),
+    offsetYPercent: clampPercent(
+      overlay?.offsetYPercent ?? 0,
+      OVERLAY_PERCENT_LIMITS.offsetY.min,
+      OVERLAY_PERCENT_LIMITS.offsetY.max
+    ),
+  };
+}
+
+// 根据覆盖层比例配置计算窗口位置与尺寸，统一用于初始化、预览和保存后的应用
+function getOverlayBounds(overlay: Partial<OverlayConfig> | undefined) {
   const primary = screen.getPrimaryDisplay();
   const bounds = primary.bounds;
   const workArea = primary.workAreaSize;
-  const width = Math.round(workArea.width * 0.38);
-  const height = Math.round(workArea.height * 0.18);
-  const x = Math.round(bounds.x + workArea.width * 0.05);
-  const y = Math.round(bounds.y);
+  const normalizedOverlay = normalizeOverlayConfig(overlay);
+  const width = Math.round(workArea.width * (normalizedOverlay.widthPercent / 100));
+  const height = Math.round(workArea.height * (normalizedOverlay.heightPercent / 100));
+  const x = Math.round(bounds.x + workArea.width * (normalizedOverlay.offsetXPercent / 100));
+  const y = Math.round(bounds.y + workArea.height * (normalizedOverlay.offsetYPercent / 100));
+
+  return { x, y, width, height };
+}
+
+// 创建覆盖层窗口
+export function createOverlayWindow(overlay: Partial<OverlayConfig> | undefined) {
+  const { x, y, width, height } = getOverlayBounds(overlay);
 
   overlayWindow = new BrowserWindow({
     x,
@@ -63,6 +115,16 @@ export function createOverlayWindow() {
 // 获取覆盖层窗口
 export function getOverlayWindow() {
   return overlayWindow;
+}
+
+// 应用覆盖层布局；标定模式期间仅记录最新普通态尺寸，避免打断全屏标定
+export function applyOverlayLayout(overlay: Partial<OverlayConfig> | undefined) {
+  const nextBounds = getOverlayBounds(overlay);
+  previousBounds = nextBounds;
+  if (!overlayWindow || calibrationActive) {
+    return;
+  }
+  overlayWindow.setBounds(nextBounds);
 }
 
 // 设置覆盖层锁定状态

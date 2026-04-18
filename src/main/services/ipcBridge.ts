@@ -1,13 +1,16 @@
 import { app, BrowserWindow, ipcMain, screen, shell } from "electron";
 import { BackendClient } from "./backendWs";
 import { ConfigStore } from "./configStore";
-import { ScreenInfo } from "../../shared/types";
+import { AppConfig, ScreenInfo } from "../../shared/types";
+import { normalizeOverlayConfig } from "../windows/overlayWindow";
 
 type RegisterParams = {
   windows: BrowserWindow[];
   backend: BackendClient;
   store: ConfigStore;
   onLockedChange?: (locked: boolean) => void;
+  onOverlayPreview?: (overlay: unknown) => void;
+  onOverlayPreviewReset?: (overlay: unknown) => void;
   onConfigUpdated?: (config: unknown) => void;
   onCalibrationStart?: () => void;
   onCalibrationStop?: () => void;
@@ -21,6 +24,8 @@ export function registerIpcHandlers(params: RegisterParams) {
     backend,
     store,
     onLockedChange,
+    onOverlayPreview,
+    onOverlayPreviewReset,
     onConfigUpdated,
     onCalibrationStart,
     onCalibrationStop,
@@ -29,12 +34,27 @@ export function registerIpcHandlers(params: RegisterParams) {
 
   ipcMain.handle("config:get", () => store.getConfig());
   ipcMain.handle("config:update", (_event, patch) => {
+    const normalizedPatch = patch as Partial<AppConfig>;
+    if (normalizedPatch.overlay) {
+      normalizedPatch.overlay = normalizeOverlayConfig({
+        ...store.getConfig().overlay,
+        ...normalizedPatch.overlay,
+      });
+    }
     console.log("[ipc] config:update", {
-      rois: patch?.calibration?.rois?.length ?? 0,
-      hasSignature: Boolean(patch?.calibration?.signature),
+      rois: normalizedPatch?.calibration?.rois?.length ?? 0,
+      hasSignature: Boolean(normalizedPatch?.calibration?.signature),
     });
-    const next = store.updateConfig(patch);
+    const next = store.updateConfig(normalizedPatch);
     return next;
+  });
+
+  ipcMain.handle("overlay:preview", (_event, overlayPatch) => {
+    onOverlayPreview?.(overlayPatch);
+  });
+
+  ipcMain.handle("overlay:previewReset", (_event, overlayConfig) => {
+    onOverlayPreviewReset?.(overlayConfig);
   });
 
   ipcMain.handle("backend:reconnect", () => {

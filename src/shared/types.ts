@@ -73,6 +73,10 @@ export type AppConfig = {
     scale: number;
     layoutPreset: "default";
     locked: boolean;
+    widthPercent: number;
+    heightPercent: number;
+    offsetXPercent: number;
+    offsetYPercent: number;
   };
   hotkeys: {
     toggleLock?: string;

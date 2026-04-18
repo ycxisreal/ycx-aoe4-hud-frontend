@@ -11,6 +11,10 @@ const DEFAULT_CONFIG: AppConfig = {
     scale: 1,
     layoutPreset: "default",
     locked: true,
+    widthPercent: 38,
+    heightPercent: 18,
+    offsetXPercent: 5,
+    offsetYPercent: 0,
   },
   hotkeys: {
     toggleLock: "Alt+W",

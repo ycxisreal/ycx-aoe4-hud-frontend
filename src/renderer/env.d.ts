@@ -11,6 +11,8 @@ export type Unsubscribe = () => void;
 export type WindowApi = {
   getConfig: () => Promise<AppConfig>;
   updateConfig: (patch: Partial<AppConfig>) => Promise<AppConfig>;
+  previewOverlay: (overlay: Partial<AppConfig["overlay"]>) => Promise<void>;
+  resetOverlayPreview: (overlay: AppConfig["overlay"]) => Promise<void>;
   getScreenInfo: () => Promise<ScreenInfo>;
   setLocked: (locked: boolean) => void;
   broadcastConfig: (config: AppConfig) => void;

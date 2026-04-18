@@ -15,6 +15,12 @@ const api = {
   // 更新配置
   updateConfig: (patch: Partial<AppConfig>) =>
     ipcRenderer.invoke("config:update", patch) as Promise<AppConfig>,
+  // 预览覆盖层布局
+  previewOverlay: (overlay: Partial<AppConfig["overlay"]>) =>
+    ipcRenderer.invoke("overlay:preview", overlay) as Promise<void>,
+  // 取消预览并恢复覆盖层布局
+  resetOverlayPreview: (overlay: AppConfig["overlay"]) =>
+    ipcRenderer.invoke("overlay:previewReset", overlay) as Promise<void>,
   // 获取屏幕信息
   getScreenInfo: () => ipcRenderer.invoke("screen:get") as Promise<ScreenInfo>,
   // 设置锁定状态
