@@ -28,6 +28,7 @@ const lastAlert = ref<AlertEventPayload | null>(null);
 const isCalibrating = ref(false);
 const showSettings = ref(false);
 const showHelp = ref(false);
+const settingsOverlaySnapshot = ref<AppConfig["overlay"] | null>(null);
 const isRefreshingMatch = ref(false);
 const retryTimer = ref<number | null>(null);
 const retryReason = ref<"await_ongoing" | "missing_metrics" | null>(null);
@@ -139,14 +140,30 @@ const handleCalibrationComplete = async (rois: RoiItem[], signature: AppConfig["
 // 更新设置
 const handleSettingsSave = async (next: AppConfig) => {
   await applyConfigPatch(next);
+  settingsOverlaySnapshot.value = null;
   await refreshMatchInfo();
   showHelp.value = false;
+  showSettings.value = false;
+};
+
+// 实时预览设置面板中的覆盖层布局调整
+const previewOverlayLayout = async (overlay: AppConfig["overlay"]) => {
+  await window.api.previewOverlay(overlay);
+};
+
+// 关闭设置面板时回滚未保存的覆盖层预览
+const closeSettingsPanel = async () => {
+  if (settingsOverlaySnapshot.value) {
+    await window.api.resetOverlayPreview(settingsOverlaySnapshot.value);
+  }
+  settingsOverlaySnapshot.value = null;
   showSettings.value = false;
 };
 
 // 打开设置面板并收起帮助面板
 const openSettingsPanel = () => {
   showHelp.value = false;
+  settingsOverlaySnapshot.value = config.value ? JSON.parse(JSON.stringify(config.value.overlay)) : null;
   showSettings.value = true;
 };
 
@@ -583,7 +600,8 @@ onBeforeUnmount(() => {
     <SettingsPanel
       :open="showSettings"
       :config="config"
-      @close="showSettings = false"
+      @close="closeSettingsPanel"
+      @preview="previewOverlayLayout"
       @save="handleSettingsSave"
     />
   </div>

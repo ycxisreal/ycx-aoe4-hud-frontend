@@ -9,11 +9,52 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   (e: "close"): void;
+  (e: "preview", overlay: AppConfig["overlay"]): void;
   (e: "save", config: AppConfig): void;
 }>();
 
 const profileInputWrapRef = ref<HTMLElement | null>(null);
 const profileHistoryOpen = ref(false);
+
+const OVERLAY_PERCENT_LIMITS = {
+  widthPercent: { min: 20, max: 80 },
+  heightPercent: { min: 10, max: 50 },
+  offsetXPercent: { min: 0, max: 60 },
+  offsetYPercent: { min: 0, max: 60 },
+} as const;
+
+// 限制设置页中的比例数值范围，避免输入过程出现空值或越界
+const clampNumber = (value: number, min: number, max: number) => {
+  if (!Number.isFinite(value)) {
+    return min;
+  }
+  return Math.min(Math.max(value, min), max);
+};
+
+// 生成用于窗口实时预览与最终保存的覆盖层配置快照
+const buildOverlayPreview = (): AppConfig["overlay"] => ({
+  ...form.overlay,
+  widthPercent: clampNumber(
+    Number(form.overlay.widthPercent),
+    OVERLAY_PERCENT_LIMITS.widthPercent.min,
+    OVERLAY_PERCENT_LIMITS.widthPercent.max
+  ),
+  heightPercent: clampNumber(
+    Number(form.overlay.heightPercent),
+    OVERLAY_PERCENT_LIMITS.heightPercent.min,
+    OVERLAY_PERCENT_LIMITS.heightPercent.max
+  ),
+  offsetXPercent: clampNumber(
+    Number(form.overlay.offsetXPercent),
+    OVERLAY_PERCENT_LIMITS.offsetXPercent.min,
+    OVERLAY_PERCENT_LIMITS.offsetXPercent.max
+  ),
+  offsetYPercent: clampNumber(
+    Number(form.overlay.offsetYPercent),
+    OVERLAY_PERCENT_LIMITS.offsetYPercent.min,
+    OVERLAY_PERCENT_LIMITS.offsetYPercent.max
+  ),
+});
 
 /**
  * 结构说明：
@@ -24,7 +65,16 @@ const profileHistoryOpen = ref(false);
 const form = reactive<AppConfig>({
   version: 1,
   app: { firstRun: true },
-  overlay: { opacity: 0.9, scale: 1, layoutPreset: "default", locked: true },
+  overlay: {
+    opacity: 0.9,
+    scale: 1,
+    layoutPreset: "default",
+    locked: true,
+    widthPercent: 38,
+    heightPercent: 18,
+    offsetXPercent: 5,
+    offsetYPercent: 0,
+  },
   hotkeys: {},
   players: { self: { profileId: "", history: [] } },
   backend: { wsUrl: "ws://127.0.0.1:8765", autoReconnect: true },
@@ -145,10 +195,27 @@ watch(
 const handleSave = () => {
   form.players.self.profileId = String(form.players.self.profileId ?? "").trim();
   form.players.self.history = normalizeProfileHistory(form.players.self.history);
+  form.overlay = buildOverlayPreview();
   upsertProfileHistory(form.players.self.profileId);
   closeProfileHistory();
   emit("save", JSON.parse(JSON.stringify(form)) as AppConfig);
 };
+
+// 覆盖层布局字段变动后实时通知父层进行窗口预览
+watch(
+  () => [
+    form.overlay.widthPercent,
+    form.overlay.heightPercent,
+    form.overlay.offsetXPercent,
+    form.overlay.offsetYPercent,
+  ],
+  () => {
+    if (!props.open) {
+      return;
+    }
+    emit("preview", buildOverlayPreview());
+  }
+);
 
 onMounted(() => {
   document.addEventListener("mousedown", onGlobalPointerDown);
@@ -208,6 +275,42 @@ onBeforeUnmount(() => {
         <label>
           识别频率 (Hz)
           <input v-model.number="form.recognition.hz" type="number" min="1" max="2" />
+        </label>
+        <label>
+          HUD 宽度占比 (%)
+          <input
+            v-model.number="form.overlay.widthPercent"
+            type="number"
+            :min="OVERLAY_PERCENT_LIMITS.widthPercent.min"
+            :max="OVERLAY_PERCENT_LIMITS.widthPercent.max"
+          />
+        </label>
+        <label>
+          HUD 高度占比 (%)
+          <input
+            v-model.number="form.overlay.heightPercent"
+            type="number"
+            :min="OVERLAY_PERCENT_LIMITS.heightPercent.min"
+            :max="OVERLAY_PERCENT_LIMITS.heightPercent.max"
+          />
+        </label>
+        <label>
+          左侧偏移占比 (%)
+          <input
+            v-model.number="form.overlay.offsetXPercent"
+            type="number"
+            :min="OVERLAY_PERCENT_LIMITS.offsetXPercent.min"
+            :max="OVERLAY_PERCENT_LIMITS.offsetXPercent.max"
+          />
+        </label>
+        <label>
+          顶部偏移占比 (%)
+          <input
+            v-model.number="form.overlay.offsetYPercent"
+            type="number"
+            :min="OVERLAY_PERCENT_LIMITS.offsetYPercent.min"
+            :max="OVERLAY_PERCENT_LIMITS.offsetYPercent.max"
+          />
         </label>
       </div>
     </div>
