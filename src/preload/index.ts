@@ -1,4 +1,4 @@
-import { contextBridge, ipcRenderer } from "electron";
+import { contextBridge, ipcRenderer, type IpcRendererEvent } from "electron";
 import {
   AlertEventPayload,
   AppConfig,
@@ -8,6 +8,21 @@ import {
 } from "../shared/types";
 
 type Unsubscribe = () => void;
+
+// 统一封装 IPC 事件订阅，避免重复注册与清理逻辑分散
+const subscribeIpcChannel = <T>(
+  channel: string,
+  handler: (payload: T) => void
+): Unsubscribe => {
+  const listener = (_event: IpcRendererEvent, payload: T) => {
+    handler(payload);
+  };
+
+  ipcRenderer.on(channel, listener);
+  return () => {
+    ipcRenderer.removeListener(channel, listener);
+  };
+};
 
 const api = {
   // 获取配置
@@ -40,25 +55,17 @@ const api = {
   // 打开外部链接（系统浏览器）
   openExternalUrl: (url: string) => ipcRenderer.invoke("external:openUrl", url) as Promise<void>,
   // 订阅后端状态
-  onBackendStatus: (handler: (payload: BackendStatusPayload) => void): Unsubscribe => {
-    ipcRenderer.on("backend:status", (_event, payload) => handler(payload));
-    return () => ipcRenderer.removeAllListeners("backend:status");
-  },
+  onBackendStatus: (handler: (payload: BackendStatusPayload) => void): Unsubscribe =>
+    subscribeIpcChannel("backend:status", handler),
   // 订阅后端数据
-  onBackendData: (handler: (payload: BackendDataPayload) => void): Unsubscribe => {
-    ipcRenderer.on("backend:data", (_event, payload) => handler(payload));
-    return () => ipcRenderer.removeAllListeners("backend:data");
-  },
+  onBackendData: (handler: (payload: BackendDataPayload) => void): Unsubscribe =>
+    subscribeIpcChannel("backend:data", handler),
   // 订阅后端告警
-  onBackendAlert: (handler: (payload: AlertEventPayload) => void): Unsubscribe => {
-    ipcRenderer.on("backend:alert", (_event, payload) => handler(payload));
-    return () => ipcRenderer.removeAllListeners("backend:alert");
-  },
+  onBackendAlert: (handler: (payload: AlertEventPayload) => void): Unsubscribe =>
+    subscribeIpcChannel("backend:alert", handler),
   // 订阅配置更新
-  onConfigUpdated: (handler: (payload: AppConfig) => void): Unsubscribe => {
-    ipcRenderer.on("config:updated", (_event, payload) => handler(payload));
-    return () => ipcRenderer.removeAllListeners("config:updated");
-  },
+  onConfigUpdated: (handler: (payload: AppConfig) => void): Unsubscribe =>
+    subscribeIpcChannel("config:updated", handler),
 };
 
 contextBridge.exposeInMainWorld("api", api);
