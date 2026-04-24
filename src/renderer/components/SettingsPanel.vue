@@ -1,6 +1,15 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from "vue";
-import { AppConfig, PlayerHistoryItem } from "../../shared/types";
+import {
+  clampOverlayPercent,
+  DEFAULT_OVERLAY_PERCENT,
+  OVERLAY_PERCENT_LIMITS,
+} from "../../shared/overlay";
+import {
+  normalizeProfileHistory,
+  upsertProfileHistory as mergeProfileHistory,
+} from "../../shared/playerHistory";
+import { AppConfig } from "../../shared/types";
 
 const props = defineProps<{
   open: boolean;
@@ -16,50 +25,24 @@ const emit = defineEmits<{
 const profileInputWrapRef = ref<HTMLElement | null>(null);
 const profileHistoryOpen = ref(false);
 
-const OVERLAY_PERCENT_LIMITS = {
-  widthPercent: { min: 20, max: 80 },
-  heightPercent: { min: 10, max: 50 },
-  offsetXPercent: { min: 0, max: 60 },
-  offsetYPercent: { min: 0, max: 60 },
-} as const;
-
-const DEFAULT_OVERLAY_PERCENT = {
-  widthPercent: 38,
-  heightPercent: 18,
-  offsetXPercent: 5,
-  offsetYPercent: 0,
-} as const;
-
-// 限制设置页中的比例数值范围，避免输入过程出现空值或越界
-const clampNumber = (value: number, min: number, max: number) => {
-  if (!Number.isFinite(value)) {
-    return min;
-  }
-  return Math.min(Math.max(value, min), max);
-};
-
 // 生成用于窗口实时预览与最终保存的覆盖层配置快照
 const buildOverlayPreview = (): AppConfig["overlay"] => ({
   ...form.overlay,
-  widthPercent: clampNumber(
-    Number(form.overlay.widthPercent),
-    OVERLAY_PERCENT_LIMITS.widthPercent.min,
-    OVERLAY_PERCENT_LIMITS.widthPercent.max
+  widthPercent: clampOverlayPercent(
+    "widthPercent",
+    Number(form.overlay.widthPercent)
   ),
-  heightPercent: clampNumber(
-    Number(form.overlay.heightPercent),
-    OVERLAY_PERCENT_LIMITS.heightPercent.min,
-    OVERLAY_PERCENT_LIMITS.heightPercent.max
+  heightPercent: clampOverlayPercent(
+    "heightPercent",
+    Number(form.overlay.heightPercent)
   ),
-  offsetXPercent: clampNumber(
-    Number(form.overlay.offsetXPercent),
-    OVERLAY_PERCENT_LIMITS.offsetXPercent.min,
-    OVERLAY_PERCENT_LIMITS.offsetXPercent.max
+  offsetXPercent: clampOverlayPercent(
+    "offsetXPercent",
+    Number(form.overlay.offsetXPercent)
   ),
-  offsetYPercent: clampNumber(
-    Number(form.overlay.offsetYPercent),
-    OVERLAY_PERCENT_LIMITS.offsetYPercent.min,
-    OVERLAY_PERCENT_LIMITS.offsetYPercent.max
+  offsetYPercent: clampOverlayPercent(
+    "offsetYPercent",
+    Number(form.overlay.offsetYPercent)
   ),
 });
 
@@ -107,46 +90,13 @@ const form = reactive<AppConfig>({
   calibration: { rois: [] },
 });
 
-// 规范化历史 profileId 列表（去重、裁剪空值、按最近使用排序）
-const normalizeProfileHistory = (history?: PlayerHistoryItem[]) => {
-  const source = Array.isArray(history) ? history : [];
-  const dedupMap = new Map<string, PlayerHistoryItem>();
-  source.forEach((item) => {
-    const profileId = String(item?.profileId ?? "").trim();
-    if (!profileId) {
-      return;
-    }
-    const prev = dedupMap.get(profileId);
-    const currentTime = typeof item?.lastUsedAt === "number" ? item.lastUsedAt : 0;
-    const prevTime = typeof prev?.lastUsedAt === "number" ? prev.lastUsedAt : 0;
-    if (!prev || currentTime >= prevTime) {
-      dedupMap.set(profileId, {
-        profileId,
-        name: String(item?.name ?? "").trim() || undefined,
-        lastUsedAt: currentTime || undefined,
-      });
-    }
-  });
-  return [...dedupMap.values()]
-    .sort((a, b) => (b.lastUsedAt ?? 0) - (a.lastUsedAt ?? 0))
-    .slice(0, 20);
-};
-
 // 将指定 profileId 写入历史列表并更新最近使用时间
-const upsertProfileHistory = (profileId: string, name?: string) => {
-  const normalizedId = String(profileId ?? "").trim();
-  if (!normalizedId) {
-    return;
-  }
-  const normalizedName = String(name ?? "").trim();
-  const current = normalizeProfileHistory(form.players.self.history);
-  const filtered = current.filter((item) => item.profileId !== normalizedId);
-  filtered.unshift({
-    profileId: normalizedId,
-    name: normalizedName || current.find((item) => item.profileId === normalizedId)?.name,
-    lastUsedAt: Date.now(),
-  });
-  form.players.self.history = normalizeProfileHistory(filtered);
+const syncProfileHistory = (profileId: string, name?: string) => {
+  form.players.self.history = mergeProfileHistory(
+    form.players.self.history,
+    profileId,
+    name
+  );
 };
 
 // 历史 profileId 列表（按最近使用排序）
@@ -225,7 +175,7 @@ const handleSave = () => {
   form.players.self.profileId = String(form.players.self.profileId ?? "").trim();
   form.players.self.history = normalizeProfileHistory(form.players.self.history);
   form.overlay = buildOverlayPreview();
-  upsertProfileHistory(form.players.self.profileId);
+  syncProfileHistory(form.players.self.profileId);
   closeProfileHistory();
   emit("save", JSON.parse(JSON.stringify(form)) as AppConfig);
 };

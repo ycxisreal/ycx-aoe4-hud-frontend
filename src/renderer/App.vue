@@ -3,14 +3,17 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import CalibrationWizard, { CalibrationStep } from "./components/CalibrationWizard.vue";
 import OverlayHUD from "./components/OverlayHUD.vue";
 import SettingsPanel from "./components/SettingsPanel.vue";
+import { buildMatchView, hasMissingRatingOrElo } from "./utils/matchView";
+import {
+  normalizeProfileHistory,
+  upsertProfileHistory,
+} from "../shared/playerHistory";
 import {
   AlertEventPayload,
   AppConfig,
   BackendDataPayload,
   BackendStatusPayload,
-  MatchPlayerView,
   MatchView,
-  PlayerHistoryItem,
   RoiItem,
   ScreenInfo,
 } from "../shared/types";
@@ -202,45 +205,6 @@ const parseTimerSeconds = (timerText?: string): number | null => {
   return minNum * 60 + secNum;
 };
 
-// 根据 kind 生成模式文案
-const formatModeLabel = (kind: string): string => {
-  if (!kind) {
-    return "UNKNOWN";
-  }
-  return kind.toUpperCase();
-};
-
-// 解析模式统计 key（rank/wins/losses/win_rate）
-const resolveModeStatsKey = (kind: string): string => {
-  if (kind.startsWith("rm_")) {
-    return `${kind}_elo`;
-  }
-  return kind;
-};
-
-// 规范化历史 profileId 列表（去重、裁剪空值、按最近使用时间排序）
-const normalizeProfileHistory = (history?: PlayerHistoryItem[]) => {
-  const source = Array.isArray(history) ? history : [];
-  const dedupMap = new Map<string, PlayerHistoryItem>();
-  source.forEach((item) => {
-    const profileId = String(item?.profileId ?? "").trim();
-    if (!profileId) {
-      return;
-    }
-    const prev = dedupMap.get(profileId);
-    const currentTime = typeof item?.lastUsedAt === "number" ? item.lastUsedAt : 0;
-    const prevTime = typeof prev?.lastUsedAt === "number" ? prev.lastUsedAt : 0;
-    if (!prev || currentTime >= prevTime) {
-      dedupMap.set(profileId, {
-        profileId,
-        name: String(item?.name ?? "").trim() || undefined,
-        lastUsedAt: currentTime || undefined,
-      });
-    }
-  });
-  return [...dedupMap.values()].sort((a, b) => (b.lastUsedAt ?? 0) - (a.lastUsedAt ?? 0)).slice(0, 20);
-};
-
 // 将当前 profileId 及其玩家名写回历史列表（用于设置面板快速切换）
 const persistSelfProfileHistory = async (
   profileId: string,
@@ -261,86 +225,20 @@ const persistSelfProfileHistory = async (
   if (!needInsert && !needRename) {
     return;
   }
-  const nextHistory = currentHistory.filter((item) => item.profileId !== normalizedId);
-  nextHistory.unshift({
-    profileId: normalizedId,
-    name: normalizedName || currentItem?.name,
-    lastUsedAt: Date.now(),
-  });
+  const nextHistory = upsertProfileHistory(
+    currentHistory,
+    normalizedId,
+    normalizedName || currentItem?.name
+  );
   await applyConfigPatch({
     players: {
       self: {
         ...config.value.players.self,
         profileId: normalizedId,
-        history: normalizeProfileHistory(nextHistory),
+        history: nextHistory,
       },
     },
   });
-};
-
-// 映射单个玩家的展示数据
-const mapPlayerView = (
-  player: any,
-  kind: string,
-  selfProfileId: string
-): MatchPlayerView => {
-  const modeStatsKey = resolveModeStatsKey(kind);
-  const modeStats = player?.modes?.[modeStatsKey] ?? {};
-  // RM_1V1 的历史最高分取排位分轨道 rm_solo，而不是隐藏分轨道 rm_1v1_elo
-  const soloRankStats = player?.modes?.rm_solo ?? {};
-  return {
-    profileId: String(player?.profile_id ?? ""),
-    name: player?.name ?? String(player?.profile_id ?? "--"),
-    rating: typeof player?.rating === "number" ? player.rating : undefined,
-    elo: typeof player?.mmr === "number" ? player.mmr : undefined,
-    maxRating: typeof soloRankStats?.max_rating === "number" ? soloRankStats.max_rating : undefined,
-    rankLevel: typeof modeStats?.rank_level === "string" ? modeStats.rank_level : undefined,
-    stats: {
-      rank: typeof modeStats?.rank === "number" ? modeStats.rank : undefined,
-      wins: typeof modeStats?.wins_count === "number" ? modeStats.wins_count : undefined,
-      losses: typeof modeStats?.losses_count === "number" ? modeStats.losses_count : undefined,
-      winRate: typeof modeStats?.win_rate === "number" ? modeStats.win_rate : undefined,
-    },
-    isSelf: String(player?.profile_id ?? "") === selfProfileId,
-  };
-};
-
-// 将接口数据转换为双方展示结构
-const buildMatchView = (data: any, selfProfileId: string): MatchView | null => {
-  const kind = String(data?.kind ?? "");
-  if (!kind || kind.includes("ffa")) {
-    return null;
-  }
-  const teams = Array.isArray(data?.teams) ? (data.teams as any[][]) : [];
-  if (teams.length !== 2) {
-    return null;
-  }
-  const selfTeamIndex = teams.findIndex(
-    (team) =>
-      Array.isArray(team) &&
-      team.some((player) => String(player?.profile_id ?? "") === selfProfileId)
-  );
-  const leftTeam = selfTeamIndex >= 0 ? teams[selfTeamIndex] : teams[0];
-  const rightTeam = selfTeamIndex >= 0 ? teams[1 - selfTeamIndex] : teams[1];
-  if (!Array.isArray(leftTeam) || !Array.isArray(rightTeam) || rightTeam.length === 0) {
-    return null;
-  }
-  const selfPlayers = leftTeam.map((player) => mapPlayerView(player, kind, selfProfileId));
-  const enemyPlayers = rightTeam.map((player) => mapPlayerView(player, kind, selfProfileId));
-  return {
-    kind,
-    modeLabel: formatModeLabel(kind),
-    ongoing: Boolean(data?.ongoing),
-    isSolo: leftTeam.length === 1 && rightTeam.length === 1,
-    selfTeam: selfPlayers,
-    enemyTeam: enemyPlayers,
-  };
-};
-
-// 判断 ongoing 对局是否缺失关键分数字段（rating/mmr）
-const hasMissingRatingOrElo = (view: MatchView): boolean => {
-  const allPlayers = [...view.selfTeam, ...view.enemyTeam];
-  return allPlayers.some((player) => player.rating === undefined || player.elo === undefined);
 };
 
 // 重置 rating/mmr 缺失补拉状态
