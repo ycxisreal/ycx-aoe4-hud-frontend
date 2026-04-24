@@ -1,4 +1,5 @@
 import Store from "electron-store";
+import { DEFAULT_OVERLAY_PERCENT } from "../../shared/overlay";
 import { AppConfig } from "../../shared/types";
 
 const DEFAULT_CONFIG: AppConfig = {
@@ -11,10 +12,10 @@ const DEFAULT_CONFIG: AppConfig = {
     scale: 1,
     layoutPreset: "default",
     locked: true,
-    widthPercent: 38,
-    heightPercent: 18,
-    offsetXPercent: 5,
-    offsetYPercent: 0,
+    widthPercent: DEFAULT_OVERLAY_PERCENT.widthPercent,
+    heightPercent: DEFAULT_OVERLAY_PERCENT.heightPercent,
+    offsetXPercent: DEFAULT_OVERLAY_PERCENT.offsetXPercent,
+    offsetYPercent: DEFAULT_OVERLAY_PERCENT.offsetYPercent,
   },
   hotkeys: {
     toggleLock: "Alt+W",

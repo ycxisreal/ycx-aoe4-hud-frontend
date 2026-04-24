@@ -1,27 +1,14 @@
 import path from "node:path";
 import { BrowserWindow, screen } from "electron";
-import { AppConfig } from "../../shared/types";
+import {
+  clampOverlayPercent,
+  DEFAULT_OVERLAY_PERCENT,
+  OverlayConfig,
+} from "../../shared/overlay";
 
 let overlayWindow: BrowserWindow | null = null;
 let previousBounds: Electron.Rectangle | null = null;
 let calibrationActive = false;
-
-type OverlayConfig = AppConfig["overlay"];
-
-const OVERLAY_PERCENT_LIMITS = {
-  width: { min: 20, max: 80 },
-  height: { min: 10, max: 50 },
-  offsetX: { min: 0, max: 60 },
-  offsetY: { min: 0, max: 60 },
-} as const;
-
-// 将数值限制在指定范围内，避免异常配置导致窗口越界或尺寸失控
-function clampPercent(value: number, min: number, max: number) {
-  if (!Number.isFinite(value)) {
-    return min;
-  }
-  return Math.min(Math.max(value, min), max);
-}
 
 // 规范化覆盖层布局比例配置，统一处理默认值与边界限制
 export function normalizeOverlayConfig(overlay: Partial<OverlayConfig> | undefined): OverlayConfig {
@@ -30,25 +17,21 @@ export function normalizeOverlayConfig(overlay: Partial<OverlayConfig> | undefin
     scale: typeof overlay?.scale === "number" ? overlay.scale : 1,
     layoutPreset: overlay?.layoutPreset === "default" ? "default" : "default",
     locked: typeof overlay?.locked === "boolean" ? overlay.locked : true,
-    widthPercent: clampPercent(
-      overlay?.widthPercent ?? 38,
-      OVERLAY_PERCENT_LIMITS.width.min,
-      OVERLAY_PERCENT_LIMITS.width.max
+    widthPercent: clampOverlayPercent(
+      "widthPercent",
+      overlay?.widthPercent ?? DEFAULT_OVERLAY_PERCENT.widthPercent
     ),
-    heightPercent: clampPercent(
-      overlay?.heightPercent ?? 18,
-      OVERLAY_PERCENT_LIMITS.height.min,
-      OVERLAY_PERCENT_LIMITS.height.max
+    heightPercent: clampOverlayPercent(
+      "heightPercent",
+      overlay?.heightPercent ?? DEFAULT_OVERLAY_PERCENT.heightPercent
     ),
-    offsetXPercent: clampPercent(
-      overlay?.offsetXPercent ?? 5,
-      OVERLAY_PERCENT_LIMITS.offsetX.min,
-      OVERLAY_PERCENT_LIMITS.offsetX.max
+    offsetXPercent: clampOverlayPercent(
+      "offsetXPercent",
+      overlay?.offsetXPercent ?? DEFAULT_OVERLAY_PERCENT.offsetXPercent
     ),
-    offsetYPercent: clampPercent(
-      overlay?.offsetYPercent ?? 0,
-      OVERLAY_PERCENT_LIMITS.offsetY.min,
-      OVERLAY_PERCENT_LIMITS.offsetY.max
+    offsetYPercent: clampOverlayPercent(
+      "offsetYPercent",
+      overlay?.offsetYPercent ?? DEFAULT_OVERLAY_PERCENT.offsetYPercent
     ),
   };
 }
