@@ -17,7 +17,11 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   (e: "close"): void;
-  (e: "complete", rois: RoiItem[], signature: ScreenSignature): void;
+  (
+    e: "complete",
+    rois: RoiItem[],
+    signature: ScreenSignature
+  ): void;
 }>();
 
 /**
@@ -47,7 +51,9 @@ const currentStep = computed(() => props.steps[state.stepIndex]);
 // 重置标定状态
 const resetState = () => {
   state.stepIndex = 0;
-  state.rois = props.existingRois ? JSON.parse(JSON.stringify(props.existingRois)) : [];
+  state.rois = props.existingRois
+    ? JSON.parse(JSON.stringify(props.existingRois))
+    : [];
   state.completedIds = new Set(state.rois.map((roi) => roi.id));
   state.dragging = false;
   state.dragRect = null;
@@ -86,7 +92,12 @@ const handlePointerMove = (event: MouseEvent) => {
     return;
   }
   const current = toLocalPoint(event.clientX, event.clientY);
-  const rect = normalizeRect(state.dragStart.x, state.dragStart.y, current.x, current.y);
+  const rect = normalizeRect(
+    state.dragStart.x,
+    state.dragStart.y,
+    current.x,
+    current.y
+  );
   state.dragRect = rect;
 };
 
@@ -186,7 +197,12 @@ const normalizeRect = (x1: number, y1: number, x2: number, y2: number): RoiRect 
   const top = clamp(Math.min(y1, y2), 0, getCanvasSize().height);
   const right = clamp(Math.max(x1, x2), 0, getCanvasSize().width);
   const bottom = clamp(Math.max(y1, y2), 0, getCanvasSize().height);
-  return { x: left, y: top, w: Math.max(0, right - left), h: Math.max(0, bottom - top) };
+  return {
+    x: left,
+    y: top,
+    w: Math.max(0, right - left),
+    h: Math.max(0, bottom - top),
+  };
 };
 
 // 将屏幕坐标转换为画布内坐标
@@ -222,7 +238,8 @@ const buildSignature = (): ScreenSignature => {
 };
 
 // 限制数值范围
-const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
+const clamp = (value: number, min: number, max: number) =>
+  Math.min(max, Math.max(min, value));
 </script>
 
 <template>
@@ -245,13 +262,21 @@ const clamp = (value: number, min: number, max: number) => Math.min(max, Math.ma
         <div class="action-row">
           <button type="button" @click="prevStep">上一步</button>
           <button type="button" @click="skipStep">跳过</button>
-          <button type="button" class="primary" @click="confirmRect">确认保存位置</button>
+          <button type="button" class="primary" @click="confirmRect">
+            确认保存位置
+          </button>
           <button type="button" @click="nextStep">下一步</button>
         </div>
         <div class="action-row">
-          <button type="button" class="primary solid" @click="finish">完成并保存所有</button>
+          <button type="button" class="primary solid" @click="finish">
+            完成并保存所有
+          </button>
           <button type="button" class="ghost" @click="closeWizard">退出</button>
-          <button type="button" :class="{ active: state.showSavedRois }" @click="toggleSavedRois">
+          <button
+            type="button"
+            :class="{ active: state.showSavedRois }"
+            @click="toggleSavedRois"
+          >
             {{ state.showSavedRois ? "隐藏已标定位置" : "查看已标定位置" }}
           </button>
         </div>
@@ -352,6 +377,7 @@ const clamp = (value: number, min: number, max: number) => Math.min(max, Math.ma
 .hint.subtle {
   color: rgba(180, 200, 230, 0.65);
 }
+
 .actions {
   margin-top: 10px;
   display: grid;
