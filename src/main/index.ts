@@ -1,5 +1,14 @@
 import { app, globalShortcut } from "electron";
 import {
+  AlertEventPayload,
+  AppConfig,
+  BackendDataPayload,
+  BackendStatusPayload,
+} from "../shared/types";
+import { createBackendClient } from "./services/backendWs";
+import { initConfigStore } from "./services/configStore";
+import { registerIpcHandlers } from "./services/ipcBridge";
+import {
   applyOverlayLayout,
   createOverlayWindow,
   enterCalibration,
@@ -7,13 +16,12 @@ import {
   normalizeOverlayConfig,
   setOverlayLocked,
 } from "./windows/overlayWindow";
-import { createBackendClient } from "./services/backendWs";
-import { initConfigStore } from "./services/configStore";
-import { registerIpcHandlers } from "./services/ipcBridge";
-import { AppConfig, BackendDataPayload, BackendStatusPayload, AlertEventPayload } from "../shared/types";
 
 // 注册全局快捷键
-const registerShortcuts = (getConfig: () => AppConfig, applyLockState: (locked: boolean) => void) => {
+const registerShortcuts = (
+  getConfig: () => AppConfig,
+  applyLockState: (locked: boolean) => void
+) => {
   globalShortcut.unregisterAll();
   const hotkey = getConfig().hotkeys.toggleLock || "Alt+W";
   const registered = globalShortcut.register(hotkey, () => {

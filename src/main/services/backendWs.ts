@@ -2,11 +2,11 @@ import { EventEmitter } from "node:events";
 import { screen } from "electron";
 import WebSocket from "ws";
 import {
+  AlertEventPayload,
   AppConfig,
   BackendDataPayload,
   BackendMessage,
   BackendStatusPayload,
-  AlertEventPayload,
   ScreenSignature,
 } from "../../shared/types";
 

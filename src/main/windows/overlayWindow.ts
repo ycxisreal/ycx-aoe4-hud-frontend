@@ -30,7 +30,11 @@ export function normalizeOverlayConfig(overlay: Partial<OverlayConfig> | undefin
     scale: typeof overlay?.scale === "number" ? overlay.scale : 1,
     layoutPreset: overlay?.layoutPreset === "default" ? "default" : "default",
     locked: typeof overlay?.locked === "boolean" ? overlay.locked : true,
-    widthPercent: clampPercent(overlay?.widthPercent ?? 38, OVERLAY_PERCENT_LIMITS.width.min, OVERLAY_PERCENT_LIMITS.width.max),
+    widthPercent: clampPercent(
+      overlay?.widthPercent ?? 38,
+      OVERLAY_PERCENT_LIMITS.width.min,
+      OVERLAY_PERCENT_LIMITS.width.max
+    ),
     heightPercent: clampPercent(
       overlay?.heightPercent ?? 18,
       OVERLAY_PERCENT_LIMITS.height.min,
@@ -84,7 +88,7 @@ export function createOverlayWindow(overlay: Partial<OverlayConfig> | undefined)
     focusable: false,
     title: "",
     autoHideMenuBar: true,
-    titleBarStyle: 'hidden',
+    titleBarStyle: "hidden",
     show: false,
     webPreferences: {
       preload: path.join(__dirname, "../preload/index.js"),

@@ -70,7 +70,6 @@ export function initConfigStore() {
   };
 }
 
-
 // 深度合并对象，数组直接替换
 function mergeDeep<T>(base: T, patch: Partial<T>): T {
   if (typeof base !== "object" || base === null) {

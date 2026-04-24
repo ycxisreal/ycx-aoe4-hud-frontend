@@ -1,7 +1,7 @@
 import { app, BrowserWindow, ipcMain, screen, shell } from "electron";
+import { AppConfig, ScreenInfo } from "../../shared/types";
 import { BackendClient } from "./backendWs";
 import { ConfigStore } from "./configStore";
-import { AppConfig, ScreenInfo } from "../../shared/types";
 import { normalizeOverlayConfig } from "../windows/overlayWindow";
 
 type RegisterParams = {
