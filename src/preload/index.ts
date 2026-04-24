@@ -1,9 +1,9 @@
 import { contextBridge, ipcRenderer } from "electron";
 import {
+  AlertEventPayload,
   AppConfig,
   BackendDataPayload,
   BackendStatusPayload,
-  AlertEventPayload,
   ScreenInfo,
 } from "../shared/types";
 
