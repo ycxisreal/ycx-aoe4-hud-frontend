@@ -13,7 +13,10 @@ const soloRankIconModules = import.meta.glob("../../assets/icons/solo/*.svg", {
 }) as Record<string, string>;
 
 const soloRankIconMap = Object.fromEntries(
-  Object.entries(soloRankIconModules).map(([path, url]) => [path.split("/").pop() ?? path, url])
+  Object.entries(soloRankIconModules).map(([path, url]) => [
+    path.split("/").pop() ?? path,
+    url,
+  ])
 );
 
 const SOLO_RANK_LEVELS = [
@@ -458,10 +461,6 @@ const onCloseApp = async () => {
 
 .hud-name.self {
   color: #ffe08d;
-}
-
-.solo-name {
-
 }
 
 .hud-row {

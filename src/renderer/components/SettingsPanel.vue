@@ -127,7 +127,9 @@ const normalizeProfileHistory = (history?: PlayerHistoryItem[]) => {
       });
     }
   });
-  return [...dedupMap.values()].sort((a, b) => (b.lastUsedAt ?? 0) - (a.lastUsedAt ?? 0)).slice(0, 20);
+  return [...dedupMap.values()]
+    .sort((a, b) => (b.lastUsedAt ?? 0) - (a.lastUsedAt ?? 0))
+    .slice(0, 20);
 };
 
 // 将指定 profileId 写入历史列表并更新最近使用时间
@@ -198,7 +200,10 @@ const syncForm = () => {
   }
   const next = JSON.parse(JSON.stringify(props.config)) as AppConfig;
   if (!next.players?.self) {
-    next.players = { ...(next.players ?? {}), self: { profileId: "", history: [] } };
+    next.players = {
+      ...(next.players ?? {}),
+      self: { profileId: "", history: [] },
+    };
   }
   next.players.self.history = normalizeProfileHistory(next.players.self.history);
   Object.assign(form, next);
@@ -268,7 +273,11 @@ onBeforeUnmount(() => {
                     <span class="history-id">{{ item.profileId }}</span>
                     <span class="history-name">{{ item.name || "未命名" }}</span>
                   </button>
-                  <button type="button" class="history-remove" @click.stop="removeHistoryProfileId(item.profileId)">
+                  <button
+                    type="button"
+                    class="history-remove"
+                    @click.stop="removeHistoryProfileId(item.profileId)"
+                  >
                     删除
                   </button>
                 </div>

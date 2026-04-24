@@ -123,7 +123,10 @@ const closeCalibration = async () => {
 };
 
 // 保存标定结果
-const handleCalibrationComplete = async (rois: RoiItem[], signature: AppConfig["calibration"]["signature"]) => {
+const handleCalibrationComplete = async (
+  rois: RoiItem[],
+  signature: AppConfig["calibration"]["signature"]
+) => {
   console.log("[calibration] apply:", { rois: rois.length, signature });
   try {
     await applyConfigPatch({
@@ -187,7 +190,13 @@ const parseTimerSeconds = (timerText?: string): number | null => {
   const [min, sec] = timerText.split(":");
   const minNum = Number.parseInt(min, 10);
   const secNum = Number.parseInt(sec, 10);
-  if (!Number.isFinite(minNum) || !Number.isFinite(secNum) || minNum < 0 || secNum < 0 || secNum > 59) {
+  if (
+    !Number.isFinite(minNum) ||
+    !Number.isFinite(secNum) ||
+    minNum < 0 ||
+    secNum < 0 ||
+    secNum > 59
+  ) {
     return null;
   }
   return minNum * 60 + secNum;
@@ -233,7 +242,10 @@ const normalizeProfileHistory = (history?: PlayerHistoryItem[]) => {
 };
 
 // 将当前 profileId 及其玩家名写回历史列表（用于设置面板快速切换）
-const persistSelfProfileHistory = async (profileId: string, playerName?: string) => {
+const persistSelfProfileHistory = async (
+  profileId: string,
+  playerName?: string
+) => {
   if (!config.value) {
     return;
   }
@@ -267,7 +279,11 @@ const persistSelfProfileHistory = async (profileId: string, playerName?: string)
 };
 
 // 映射单个玩家的展示数据
-const mapPlayerView = (player: any, kind: string, selfProfileId: string): MatchPlayerView => {
+const mapPlayerView = (
+  player: any,
+  kind: string,
+  selfProfileId: string
+): MatchPlayerView => {
   const modeStatsKey = resolveModeStatsKey(kind);
   const modeStats = player?.modes?.[modeStatsKey] ?? {};
   // RM_1V1 的历史最高分取排位分轨道 rm_solo，而不是隐藏分轨道 rm_1v1_elo
@@ -299,8 +315,10 @@ const buildMatchView = (data: any, selfProfileId: string): MatchView | null => {
   if (teams.length !== 2) {
     return null;
   }
-  const selfTeamIndex = teams.findIndex((team) =>
-    Array.isArray(team) && team.some((player) => String(player?.profile_id ?? "") === selfProfileId)
+  const selfTeamIndex = teams.findIndex(
+    (team) =>
+      Array.isArray(team) &&
+      team.some((player) => String(player?.profile_id ?? "") === selfProfileId)
   );
   const leftTeam = selfTeamIndex >= 0 ? teams[selfTeamIndex] : teams[0];
   const rightTeam = selfTeamIndex >= 0 ? teams[1 - selfTeamIndex] : teams[1];
@@ -384,10 +402,18 @@ const scheduleRetryRefresh = (reason: "await_ongoing" | "missing_metrics") => {
     if (!currentReason) {
       return;
     }
-    if (currentReason === "await_ongoing" && autoRefreshState.value.inGame && (!matchView.value || !matchView.value.ongoing)) {
+    if (
+      currentReason === "await_ongoing" &&
+      autoRefreshState.value.inGame &&
+      (!matchView.value || !matchView.value.ongoing)
+    ) {
       scheduleRetryRefresh("await_ongoing");
     }
-    if (currentReason === "missing_metrics" && matchView.value?.ongoing && hasMissingRatingOrElo(matchView.value)) {
+    if (
+      currentReason === "missing_metrics" &&
+      matchView.value?.ongoing &&
+      hasMissingRatingOrElo(matchView.value)
+    ) {
       scheduleRetryRefresh("missing_metrics");
     }
   }, RETRY_DELAY_MS);
